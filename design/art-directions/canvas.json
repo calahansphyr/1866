@@ -1,0 +1,18 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · Plat Map", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Storybook.dc.html", "title": "B · Storybook", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "PixelFrontier.dc.html", "title": "C · Pixel Frontier", "x": 940, "y": 0, "w": 390, "h": 844 },
+    { "file": "Broadsheet.dc.html", "title": "D · Broadsheet", "x": 1410, "y": 0, "w": 390, "h": 844 },
+    { "file": "Tickertape.dc.html", "title": "E · Tickertape", "x": 1880, "y": 0, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    { "id": "how-to-compare", "x": 0, "y": -400, "w": 860, "text": "HOW TO COMPARE\nAll five screens show the same moment: Spring 1867, season 5 of 20. The post has just arrived — the Weekly reports McCoy buying every board in Abilene, the saloon says a county railroad-bond vote is coming, church talk puts Texas longhorns at $4 a head. Same ledger everywhere: cash $41.50, store tab $28 at 3%/month, cellar ¾, three visits left.\n\nCompare form, not content. Ask of each: Does it read as a game or a lesson? Does information feel like something you go looking for? Does it look like something an 18–25 year old opens on the bus?" },
+    { "id": "note-a", "x": 0, "y": -200, "w": 390, "text": "A · PLAT MAP — ink on paper, the county as the hub\nMotivation: the town is the canary. You literally watch the surveyor's stakes go in and the stockyard appear. Information lives in places you choose to visit.\nTradeoff: a map of squares is quiet. Needs strong scenes inside the buildings to carry emotion." },
+    { "id": "note-b", "x": 470, "y": -200, "w": 390, "text": "B · STORYBOOK — painted scenes, narrative first\nMotivation: the most emotional read. Choices are people, not tickers. Closest to 80 Days / Reigns, which the audience already knows.\nTradeoff: money can feel like something that happens to you rather than something you manage. Weakest at showing a portfolio." },
+    { "id": "note-c", "x": 940, "y": -200, "w": 390, "text": "C · PIXEL FRONTIER — retro pixel art, dialog box, menu\nMotivation: instantly reads as a game, and as Oregon Trail specifically — the positioning in one screenshot. Cheapest art pipeline.\nTradeoff: nostalgia may read as a joke to some of the audience; hard to make ledger numbers feel serious in a pixel font." },
+    { "id": "note-d", "x": 1410, "y": -200, "w": 390, "text": "D · BROADSHEET — the newspaper is the interface\nMotivation: information-as-gameplay made literal. Events are headlines, deals are classified ads, prices are the market column, letters home are the correspondence page. Deeply period; nothing else looks like it.\nTradeoff: dense and text-heavy on a phone. The riskiest bet and the most distinctive." },
+    { "id": "note-e", "x": 1880, "y": -200, "w": 390, "text": "E · TICKERTAPE — contemporary fintech UI, 1867 content\nMotivation: looks like the apps the audience already uses for money. The bridge to real life is built into the chrome. Reliability bars make information quality visible.\nTradeoff: loses the period immersion; can feel like a spreadsheet with a hat on. The chart is a spoiler machine." }
+  ],
+  "launch": { "view": "canvas" }
+}
