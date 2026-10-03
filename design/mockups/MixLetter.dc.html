@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mixed: the letter home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&amp;family=Spectral:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#8A3A2A}a:hover{color:#2A2420}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #3A3128; font-family: 'Spectral', Georgia, serif; color: #2A2420;">
+
+  <div style="position: absolute; left: 14px; right: 14px; top: 50px; bottom: 96px; background: #FBF5E6; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding: 22px 20px 18px 62px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;">
+    <div style="position: absolute; left: 48px; top: 0; bottom: 0; width: 1.5px; background: #E0A99C;"></div>
+
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 20px;">Dear Mother,</div>
+      <div style="font-size: 13px; font-style: italic;">December 1867</div>
+    </div>
+
+    <div style="position: relative;">
+      <div style="position: absolute; left: -58px; top: 2px; width: 50px; text-align: center; font-family: 'IM Fell English SC', serif; font-size: 10px; color: #A6761C; border: 2px solid #A6761C; border-radius: 4px; padding: 1px 0; transform: rotate(-8deg);">Lucky</div>
+      <div style="font-size: 15px; line-height: 1.5; font-style: italic;">In the spring I put the seed on Pruitt's book instead of paying for it.</div>
+      <div style="font-size: 12px; color: #A8321F; font-family: 'Spectral', serif; margin-top: 2px;">In 3 springs out of 10 like this one, the book ran past $60.</div>
+    </div>
+
+    <div style="position: relative;">
+      <div style="position: absolute; left: -58px; top: 2px; width: 50px; text-align: center; font-family: 'IM Fell English SC', serif; font-size: 10px; color: #3E6B2E; border: 2px solid #3E6B2E; border-radius: 4px; padding: 1px 0; transform: rotate(-6deg);">Sound</div>
+      <div style="font-size: 15px; line-height: 1.5; font-style: italic;">All summer I broke sod rather than hiring out to the rail crews. We have twenty-two acres now.</div>
+    </div>
+
+    <div style="position: relative;">
+      <div style="position: absolute; left: -58px; top: 2px; width: 50px; text-align: center; font-family: 'IM Fell English SC', serif; font-size: 10px; color: #3E6B2E; border: 2px solid #3E6B2E; border-radius: 4px; padding: 1px 0; transform: rotate(-9deg);">Sound</div>
+      <div style="font-size: 15px; line-height: 1.5; font-style: italic;">We sold at harvest, paid Pruitt every cent, and put up two more jars.</div>
+    </div>
+
+    <div style="position: relative;">
+      <div style="position: absolute; left: -58px; top: 2px; width: 50px; text-align: center; font-family: 'IM Fell English SC', serif; font-size: 10px; color: #2F5E9E; border: 2px solid #2F5E9E; border-radius: 4px; padding: 1px 0; transform: rotate(-5deg);">Unlucky</div>
+      <div style="font-size: 15px; line-height: 1.5; font-style: italic;">Then the hardest winter anyone remembers. The cellar ran dry in February, and $9 went back on the book.</div>
+    </div>
+
+    <div style="border: 1.5px solid #2A2420; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; margin-left: -10px;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 13px;">Ten winters that might have come</div>
+      <div style="display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; align-items: end;">
+        <sc-for list="{{winters}}" as="w" hint-placeholder-count="10">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 3px;">
+            <div style="{{w.jar}}"></div>
+            <div style="{{w.mark}}"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size: 13px; line-height: 1.4;">Your cellar lasted the winter in 8 of them. This was one of the other 2.</div>
+    </div>
+
+    <div style="font-size: 15px; line-height: 1.5; font-style: italic;">The House stands at $212. We owe Pruitt $9.</div>
+    <div style="font-family: 'IM Fell English SC', serif; font-size: 17px; text-align: right; margin-top: auto;">Your son, J. Hollis</div>
+  </div>
+
+  <div style="position: absolute; left: 14px; right: 14px; bottom: 26px; display: flex; gap: 10px;">
+    <button style="flex: 1; min-height: 52px; background: #F6EEDB; color: #2A2420; border: 0; border-radius: 12px; font-family: 'Spectral', serif; font-weight: 600; font-size: 16px;">Seal it · Spring 1868</button>
+    <button aria-label="See all the branches" style="width: 52px; min-height: 52px; background: none; color: #F6EEDB; border: 2px solid #F6EEDB; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F6EEDB" stroke-width="2" stroke-linecap="round"><path d="M6 20 V4" /><path d="M6 12 C 12 12, 14 6, 19 5" /><path d="M6 12 C 12 12, 14 18, 19 19" /><path d="M6 12 H19" /></svg>
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var held = [1, 1, 0, 1, 1, 1, 0, 1, 1, 1];
+    var winters = held.map(function (h, i) {
+      var mine = i === 6;
+      return {
+        jar: 'width: 16px; height: 22px; border-radius: 3px; border: 1.5px solid #2A2420; box-sizing: border-box; background: ' + (h ? '#D99A4E' : 'repeating-linear-gradient(-45deg, #FBF5E6 0 3px, #E0A99C 3px 5px)') + ';' + (mine ? ' outline: 2px solid #8A3A2A; outline-offset: 3px;' : ''),
+        mark: 'width: 6px; height: 6px; border-radius: 50%; background: ' + (mine ? '#8A3A2A' : 'transparent') + ';'
+      };
+    });
+    return { winters: winters };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Almanac</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&amp;family=Spectral:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; position: relative; background: #3A3128; font-family: 'Spectral', Georgia, serif; color: #2A2420;">
+
+  <div style="position: absolute; left: 14px; right: 14px; top: 50px; display: flex; align-items: center; justify-content: space-between; color: #F6EEDB;">
+    <button aria-label="Close the Almanac" style="width: 44px; height: 44px; background: none; border: 2px solid #F6EEDB; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F6EEDB" stroke-width="2.4" stroke-linecap="round"><path d="M15 5 L8 12 L15 19" /></svg>
+    </button>
+    <div style="font-family: 'IM Fell English SC', serif; font-size: 22px;">The Almanac</div>
+    <div style="font-size: 13px; font-style: italic;">14 of 60 found</div>
+  </div>
+
+  <div style="position: absolute; left: 14px; right: 14px; top: 110px; background: #FBF5E6; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.35); padding: 20px 20px 18px 20px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box;">
+    <div style="position: absolute; right: -6px; top: 26px; width: 30px; height: 46px; background: #8A3A2A; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);"></div>
+
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 28px; line-height: 1.1;">Compound interest</div>
+      <div style="font-size: 13px; font-style: italic; color: #5A4A3A;">Found at Pruitt's store, Spring 1867</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 14px; color: #8A3A2A;">What it is</div>
+      <div style="font-size: 15px; line-height: 1.5;">Interest charged on a debt, and then interest on that interest. The longer it sits, the faster it grows.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; border: 1.5px solid #2A2420; padding: 12px;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 14px; color: #8A3A2A;">What it did to you</div>
+      <div style="display: flex; align-items: flex-end; gap: 5px; height: 92px;">
+        <sc-for list="{{months}}" as="m" hint-placeholder-count="10">
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+            <div style="font-size: 9px; font-weight: 700; color: #2A2420; min-height: 11px;">{{m.amt}}</div>
+            <div style="{{m.bar}}"></div>
+            <div style="font-size: 9px; color: #5A4A3A;">{{m.label}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size: 15px; line-height: 1.5;">Pruitt's book: <b>$28</b> in April was <b style="color: #A8321F;">$36.53</b> when you paid in January. That's <b>$8.53</b> for nothing, about three bushels of wheat.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-family: 'IM Fell English SC', serif; font-size: 14px; color: #8A3A2A;">Today</div>
+      <div style="font-size: 15px; line-height: 1.5;">A credit card at 24% a year is the same 2% a month. Leave $1,000 on it for a year and you owe <b>$1,268</b>. Payday loans and late "buy now, pay later" fees can run far higher.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #D9C9A8; padding-top: 10px;">
+      <div style="font-size: 12px; font-style: italic; color: #5A4A3A;">See also</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 15px;">
+        <span style="color: #8A3A2A; text-decoration: underline; text-underline-offset: 3px;">Store credit</span>
+        <span style="color: #8A3A2A; text-decoration: underline; text-underline-offset: 3px;">Saving</span>
+        <span style="color: #9A8C78;">Collateral (not yet found)</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var labels = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan'];
+    var months = labels.map(function (l, i) {
+      var v = 28 * Math.pow(1.03, i);
+      var h = Math.round((v - 20) * 3.6);
+      var base = i === 0 ? '#8A6A4A' : '#A8321F';
+      return {
+        label: l,
+        amt: (i === 0 || i === labels.length - 1) ? '$' + Math.round(v) : '',
+        bar: 'width: 100%; height: ' + h + 'px; background: ' + base + '; border-radius: 2px 2px 0 0;'
+      };
+    });
+    return { months: months };
+  }
+}
+</script>
+</body>
+</html>

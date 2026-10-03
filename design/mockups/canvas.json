@@ -1,0 +1,223 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-03T15:10:00Z"
+  },
+  "title": "1866 RPG Directions",
+  "launch": {
+    "view": "canvas",
+    "page": "r3"
+  },
+  "pages": [
+    {
+      "id": "r1",
+      "name": "Round 1: three directions"
+    },
+    {
+      "id": "mix",
+      "name": "Round 2: the mix"
+    },
+    {
+      "id": "r3",
+      "name": "Round 3: the outline in action"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A \u00b7 Pixel Frontier: the town",
+      "page": "r1"
+    },
+    "PixelStore.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A \u00b7 Pixel Frontier: inside the store",
+      "page": "r1"
+    },
+    "ToyTown.dc.html": {
+      "x": 1060,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Toy Box: the town",
+      "page": "r1"
+    },
+    "ToyBank.dc.html": {
+      "x": 1530,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Toy Box: inside the bank",
+      "page": "r1"
+    },
+    "InkTown.dc.html": {
+      "x": 2120,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C \u00b7 Ink & Wash: the town",
+      "page": "r1"
+    },
+    "InkWire.dc.html": {
+      "x": 2590,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C \u00b7 Ink & Wash: the telegraph office",
+      "page": "r1"
+    },
+    "MixTown.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1 \u00b7 Walk the town",
+      "page": "mix"
+    },
+    "MixTalk.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 \u00b7 Talk to a neighbor",
+      "page": "mix"
+    },
+    "MixStore.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3 \u00b7 Make a call inside",
+      "page": "mix"
+    },
+    "MixSeason.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4 \u00b7 The season turns",
+      "page": "mix"
+    },
+    "MixLetter.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "5 \u00b7 The letter home",
+      "page": "mix"
+    },
+    "FamilyCreate.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "1 \u00b7 Begin your family",
+      "page": "r3"
+    },
+    "ElderAsk.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "2 \u00b7 Ask the elder",
+      "page": "r3"
+    },
+    "Almanac.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "3 \u00b7 An Almanac entry",
+      "page": "r3"
+    },
+    "ChapterEnd.dc.html": {
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "4 \u00b7 End of a chapter",
+      "page": "r3"
+    },
+    "Cast.dc.html": {
+      "x": 1880,
+      "y": 0,
+      "w": 1180,
+      "h": 1400,
+      "title": "5 \u00b7 The cast",
+      "page": "r3"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "PixelStore.dc.html",
+    "ToyTown.dc.html",
+    "ToyBank.dc.html",
+    "InkTown.dc.html",
+    "InkWire.dc.html",
+    "MixTown.dc.html",
+    "MixTalk.dc.html",
+    "MixStore.dc.html",
+    "MixSeason.dc.html",
+    "MixLetter.dc.html",
+    "FamilyCreate.dc.html",
+    "ElderAsk.dc.html",
+    "Almanac.dc.html",
+    "ChapterEnd.dc.html",
+    "Cast.dc.html"
+  ],
+  "notes": {
+    "title": {
+      "x": 0,
+      "y": -300,
+      "text": "Three ways to walk the town in 1866",
+      "kind": "title1",
+      "maxW": 2980,
+      "page": "r1"
+    },
+    "brief": {
+      "x": 0,
+      "y": -190,
+      "w": 860,
+      "text": "Same moment in every pair: Spring 1867. You walk the town, talk to people who each want something, and step inside a building to make a money decision. Left screen: the open world. Right screen: an interior. Same ledger everywhere: cash $41, store tab $28 at 3% a month, cellar half full.",
+      "page": "r1"
+    },
+    "mixtitle": {
+      "x": 0,
+      "y": -300,
+      "text": "One season, start to finish",
+      "kind": "title1",
+      "maxW": 2270,
+      "page": "mix"
+    },
+    "mixrule": {
+      "x": 0,
+      "y": -190,
+      "w": 760,
+      "text": "The rule: the world is toy 3D (where you act), anything you read is ink on paper (where you think). The header keeps A's layout: who you are, when it is, cash, tab, cellar jars, visits left as boots.",
+      "page": "mix"
+    },
+    "r3title": {
+      "x": 0,
+      "y": -300,
+      "text": "The outline, on screen",
+      "kind": "title1",
+      "maxW": 3060,
+      "page": "r3"
+    },
+    "r3brief": {
+      "x": 0,
+      "y": -190,
+      "w": 900,
+      "text": "New from the outline: you make your family, Grandma Ruth teaches by asking questions, the Almanac ties each idea to your own run and to today, and family standing carries into the next chapter. The cast sheet sets the look for every character.",
+      "page": "r3"
+    }
+  },
+  "designSystems": [],
+  "attachments": {}
+}

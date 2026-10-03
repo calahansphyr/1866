@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel Frontier: inside the store</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F2D06B}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: #1B1F2B; color: #F4ECD8; font-family: 'VT323', monospace; position: relative; display: flex; flex-direction: column;">
+
+  <div style="padding: 44px 14px 8px 14px; display: flex; flex-direction: column; gap: 8px; border-bottom: 4px solid #000;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Press Start 2P', monospace; font-size: 10px;">
+      <div style="color: #F2D06B;">GENERAL STORE</div>
+      <div>SPRING 1867 · 5/20</div>
+    </div>
+    <div style="display: flex; gap: 14px; align-items: center; font-family: 'Press Start 2P', monospace; font-size: 10px;">
+      <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #F2D06B; border: 2px solid #8A6417; border-radius: 50%;"></div>$41</div>
+      <div style="color: #FF8A75;">TAB $28</div>
+      <div>VISIT 1 OF 3</div>
+    </div>
+  </div>
+
+  <div style="position: relative; width: 390px; height: 330px; display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); flex-shrink: 0;">
+    <sc-for list="{{tiles}}" as="t" hint-placeholder-count="143">
+      <div style="{{t.st}}"></div>
+    </sc-for>
+    <div style="position: absolute; left: 44px; top: 34px; width: 30px; height: 18px; background: #C98A4A; border: 2px solid #000;"></div>
+    <div style="position: absolute; left: 80px; top: 30px; width: 18px; height: 22px; background: #E8D9BC; border: 2px solid #000;"></div>
+    <div style="position: absolute; left: 106px; top: 34px; width: 22px; height: 18px; background: #6B8F5E; border: 2px solid #000;"></div>
+    <div style="position: absolute; left: 254px; top: 32px; width: 46px; height: 20px; background: #6E6E6E; border: 2px solid #000;"></div>
+    <div style="position: absolute; left: 306px; top: 30px; width: 18px; height: 22px; background: #B5483A; border: 2px solid #000;"></div>
+
+    <div style="position: absolute; left: 182px; top: 60px; width: 26px; height: 32px;">
+      <div style="position: absolute; left: 6px; top: 6px; width: 14px; height: 11px; background: #F0C8A0; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 0; width: 20px; height: 6px; background: #333;"></div>
+      <div style="position: absolute; left: 3px; top: 17px; width: 20px; height: 14px; background: #F4ECD8; border: 1px solid #000;"></div>
+    </div>
+    <div style="position: absolute; left: 182px; top: 236px; width: 26px; height: 32px;">
+      <div style="position: absolute; left: 2px; top: 0; width: 22px; height: 6px; background: #6B4A2A;"></div>
+      <div style="position: absolute; left: 6px; top: 6px; width: 14px; height: 11px; background: #F0C8A0; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 17px; width: 20px; height: 14px; background: #3E6FB5; border: 1px solid #000;"></div>
+    </div>
+    <div style="position: absolute; left: 20px; top: 104px; width: 64px; height: 18px; background: #F4ECD8; color: #1B1F2B; border: 2px solid #000; font-family: 'Press Start 2P', monospace; font-size: 6px; display: flex; align-items: center; justify-content: center;">SEED $1/AC</div>
+    <div style="position: absolute; left: 300px; top: 104px; width: 70px; height: 18px; background: #F4ECD8; color: #1B1F2B; border: 2px solid #000; font-family: 'Press Start 2P', monospace; font-size: 6px; display: flex; align-items: center; justify-content: center;">PLOW $20</div>
+
+    <div style="position: absolute; left: 12px; right: 12px; bottom: 10px; background: #FBF3DC; color: #1B1F2B; border: 3px solid #000; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #B5483A;">FIELD GUIDE · THE TAB</div>
+      <div style="font-size: 18px; line-height: 1.05;">3% a month compounds to about 43% a year. Past $150, Pruitt cuts you off.</div>
+      <div style="font-size: 18px; line-height: 1.05; color: #3E6FB5;">You hold: a $28 tab. Your seed money is short by $9.</div>
+    </div>
+  </div>
+
+  <div style="margin: 10px 12px 0 12px; background: #F4ECD8; color: #1B1F2B; border: 4px solid #000; box-shadow: inset 0 0 0 3px #8A6417; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-family: 'Press Start 2P', monospace; font-size: 9px; color: #8A3A2A;">PRUITT</div>
+    <div style="font-size: 21px; line-height: 1.05;">"Everybody runs a <span style="text-decoration: underline; text-decoration-color: #B5483A; text-decoration-thickness: 2px;">tab</span> out here. Seed's on the shelf."</div>
+    <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
+      <button style="text-align: left; background: #1B1F2B; color: #F2D06B; border: 0; padding: 8px 10px; font-family: 'VT323', monospace; font-size: 21px;">▶ Put $9 of seed on the tab</button>
+      <button style="text-align: left; background: none; color: #1B1F2B; border: 0; padding: 8px 10px; font-family: 'VT323', monospace; font-size: 21px;">&nbsp;&nbsp;Buy a steel plow · $20</button>
+      <button style="text-align: left; background: none; color: #1B1F2B; border: 0; padding: 8px 10px; font-family: 'VT323', monospace; font-size: 21px;">&nbsp;&nbsp;Plant fewer acres instead</button>
+      <button style="text-align: left; background: none; color: #1B1F2B; border: 0; padding: 8px 10px; font-family: 'VT323', monospace; font-size: 21px;">&nbsp;&nbsp;Leave</button>
+    </div>
+  </div>
+  <div style="text-align: center; font-family: 'Press Start 2P', monospace; font-size: 7px; color: #8A93A8; padding: 12px;">▲▼ CHOOSE · A CONFIRM · TAP "TAB" FOR THE FIELD GUIDE</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var rows = [
+      'SSSSSSSSSSSSS',
+      'SSSSSSSSSSSSS',
+      'ffffffffffffff',
+      'fffCCCCCCCfff',
+      'ffffffffffffff',
+      'fffffffffffff',
+      'fffffffffffff',
+      'fffffffffffff',
+      'fffffffffffff',
+      'fffffffffffff',
+      'ffffffMffffff'
+    ];
+    var S = {
+      S: 'background:#5A3A24; box-shadow: inset 0 -4px 0 #3A2414, inset 0 2px 0 #7A5234;',
+      f: 'background:repeating-linear-gradient(0deg,#B5865A 0 9px,#9C6E44 9px 10px);',
+      C: 'background:#7A4A2A; box-shadow: inset 0 4px 0 #A8734A, inset 0 -3px 0 #3A2414;',
+      M: 'background:#8A3A2A; box-shadow: inset 0 0 0 3px #C96A55;'
+    };
+    var tiles = [];
+    rows.forEach(function (r) { for (var i = 0; i < 13; i++) tiles.push({ st: 'height:30px;' + S[r[i]] }); });
+    return { tiles: tiles };
+  }
+}
+</script>
+</body>
+</html>
