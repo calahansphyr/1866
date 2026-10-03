@@ -397,6 +397,25 @@ function signpost(ctx, x, y, lines, w = 1.9) {
   rr(ctx, x - w / 2, y - 1.3 - h, w, h, 0.05); inked(ctx, '#F2E6CC', 0.05);
   lines.forEach((s, i) => text(ctx, s, x, y - 1.3 - h + 0.24 + i * 0.32, 0.22, INK, w - 0.15));
 }
+// A fingerpost: one board per line, each with an arrow for the way it points.
+function fingerpost(ctx, x, y, boards, w = 2.3) {
+  shadow(ctx, x + 0.05, y, 0.3, 0.1);
+  const h = 0.36, top = y - 1.2 - boards.length * (h + 0.06);
+  line(ctx, x, y, x, top - 0.1, INK, 0.13); line(ctx, x, y, x, top - 0.1, '#8A5A33', 0.08);
+  boards.forEach(([s, dir], i) => {
+    const by = top + i * (h + 0.06);
+    const pts = dir === 'right' ? [[x - w / 2, by], [x + w / 2 - 0.2, by], [x + w / 2, by + h / 2], [x + w / 2 - 0.2, by + h], [x - w / 2, by + h]]
+      : dir === 'left' ? [[x - w / 2 + 0.2, by], [x + w / 2, by], [x + w / 2, by + h], [x - w / 2 + 0.2, by + h], [x - w / 2, by + h / 2]]
+        : [[x - w / 2, by], [x + w / 2, by], [x + w / 2, by + h], [x - w / 2, by + h]];
+    path(ctx, pts); inked(ctx, '#F2E6CC', 0.05);
+    const ax = x - w / 2 + 0.24, ay = by + h / 2;
+    if (dir === 'up' || dir === 'down') {
+      const d = dir === 'up' ? -1 : 1;
+      path(ctx, [[ax - 0.1, ay - d * 0.06], [ax + 0.1, ay - d * 0.06], [ax, ay + d * 0.12]]); ctx.fillStyle = '#8A3A2A'; ctx.fill();
+      text(ctx, s, x + 0.12, ay + 0.02, 0.22, INK, w - 0.5);
+    } else text(ctx, s, x, ay + 0.02, 0.22, INK, w - 0.45);
+  });
+}
 function trough(ctx, x, y) {
   shadow(ctx, x, y, 0.75, 0.14);
   rr(ctx, x - 0.7, y - 0.4, 1.4, 0.4, 0.05); inked(ctx, '#8A5A33');
@@ -451,6 +470,8 @@ export const PROPS = [
   ['tent', 18.5, 5.6], ['tent', 21.3, 5.2], ['handcar', 25, 2.95], ['ties', 23.6, 6.3], ['sign', 16.2, 7.2, ['KANSAS PACIFIC RY.', 'HANDS WANTED']],
   ['pole', 1.2, 3.85], ['pole', 7.2, 3.85], ['pole', 13.2, 3.85], ['pole', 19.2, 3.85], ['pole', 25.2, 3.85], ['pole', 6.6, 12.6],
   ['sign', 12.4, 33.6, ['THE CLAIM']],
+  ['post', 16.9, 29.5, [['ABILENE · 1 HOUR', 'up'], ['YOUR CLAIM', 'down'], ['BRANDT', 'right']]],
+  ['post', 16.3, 22.5, [['CLAIMS · 1 HOUR', 'down'], ['MAIN STREET', 'up']]],
 ];
 const TREES = [
   [0.8, 23.6, 1.1], [6.4, 27.2, 1], [10.6, 23.8, 0.9], [18.2, 23.4, 1.05], [26.8, 23.8, 1.15], [27.4, 32.6, 1], [1.2, 28.5, 0.9],
@@ -506,7 +527,7 @@ export function buildTown() {
   }
   for (const b of BUILDINGS) for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) block(x, y);
   for (const [x, y] of TREES) block(Math.floor(x), Math.floor(y - 0.2));
-  for (const [k, x, y] of PROPS) if (!['sign', 'pole', 'hitch'].includes(k) || k === 'sign') block(Math.floor(x), Math.floor(y - 0.2));
+  for (const [k, x, y] of PROPS) if (!['pole', 'hitch'].includes(k)) block(Math.floor(x), Math.floor(y - 0.2));
   for (const [[x1, y1], [x2, y2]] of FENCES) {
     if (y1 === y2) for (let x = Math.ceil(x1 - 0.5); x <= Math.floor(x2 - 0.5); x++) block(x, Math.floor(y1));
     else for (let y = Math.ceil(y1 - 0.5); y <= Math.floor(y2 - 0.5); y++) block(Math.floor(x1), y);
@@ -616,6 +637,7 @@ export function townProps(state) {
   for (const p of PROPS) {
     const [k, x, y, extra] = p;
     if (k === 'sign') list.push({ y, draw: (ctx) => signpost(ctx, x, y, extra, extra.length > 1 ? 2.5 : 1.5) });
+    else if (k === 'post') list.push({ y, draw: (ctx) => fingerpost(ctx, x, y, extra) });
     else if (k === 'hitch') list.push({ y, draw: (ctx) => hitchRail(ctx, x, y) });
     else list.push({ y, draw: (ctx) => fns[k](ctx, x, y) });
   }
@@ -649,36 +671,59 @@ export function bakeBuilding(b, scale) {
 // ------------------------------------------------------------------ interiors
 
 // Rooms are 9 x 9. Row 0-1 is the back wall, row 8 the front wall with the door at (4, 8).
+// Things have no walk-to spot: tapping one looks at it from wherever you stand.
 export const ROOMS = {
   store: {
     floor: '#C9A06A', wall: '#E2CFA6', name: "Pruitt's store",
-    solid: ['1-4', '2-4', '3-4', '4-4', '5-4', '3-3', '7-6', '7-7', '1-7'],
+    solid: ['1-4', '2-4', '3-4', '4-4', '5-4', '6-4', '3-3', '7-3', '1-5', '7-5', '7-6', '2-6', '6-6', '1-7', '6-7', '7-7'],
     npc: { id: 'pruitt', x: 3.5, y: 3.6, at: [3, 5] },
     things: [
-      { id: 'slate', hit: [5.95, 0.05, 1.8, 1.3] },
-      { id: 'seed', hit: [0.9, 7.1, 1.2, 0.9] },
+      { id: 'book', hit: [3.95, 3.05, 1.3, 0.8] },
+      { id: 'preserves', hit: [5.3, 2.95, 0.95, 1.6] },
+      { id: 'shelves', hit: [0.65, -0.35, 5.1, 1.85] },
+      { id: 'tools', hit: [5.9, -0.35, 2.5, 1.9] },
+      { id: 'stove', hit: [0.95, 4.75, 1.2, 1.3] },
+      { id: 'checkers', hit: [2.05, 5.95, 0.95, 0.95] },
+      { id: 'seed', hit: [0.8, 6.85, 1.45, 1.15] },
+      { id: 'plow', hit: [5.55, 5.35, 1.45, 1.35] },
+      { id: 'reaper', hit: [5.55, 6.75, 2.7, 1.25] },
+      { id: 'barrels', hit: [7.05, 4.9, 1.0, 1.95] },
     ],
   },
   bank: {
     floor: '#A8835A', wall: '#D9CBB0', name: 'The bank',
-    solid: ['1-4', '2-4', '3-4', '4-4', '5-4', '6-4', '4-3', '6-1', '7-1', '6-2', '7-2', '1-7', '2-7'],
+    solid: ['1-4', '2-4', '3-4', '4-4', '5-4', '6-4', '4-3', '6-1', '7-1', '6-2', '7-2', '1-7', '2-7', '7-6', '7-7'],
     npc: { id: 'cole', x: 4.5, y: 3.6, at: [4, 5] },
-    things: [{ id: 'vault', hit: [6.6, -0.1, 1.8, 2.4] }, { id: 'notice', hit: [1.0, -0.05, 2.0, 1.15] }],
+    things: [
+      { id: 'vault', hit: [6.6, -0.1, 1.8, 2.4] },
+      { id: 'notice', hit: [1.0, -0.05, 2.0, 1.15] },
+      { id: 'bankclock', hit: [3.95, -0.35, 1.1, 1.45] },
+      { id: 'slips', hit: [6.95, 5.4, 1.1, 1.0] },
+    ],
   },
   wire: {
     floor: '#B99568', wall: '#DCD6C6', name: 'Telegraph office',
-    solid: ['3-4', '4-4', '5-4', '6-4', '7-4', '5-3', '1-6', '2-6'],
+    solid: ['3-4', '4-4', '5-4', '6-4', '7-4', '5-3', '1-6', '2-6', '7-6', '1-4'],
     npc: { id: 'clerk', x: 5.5, y: 3.6, at: [5, 5] },
-    things: [{ id: 'board', hit: [0.75, 0.0, 1.8, 1.3] }],
+    things: [
+      { id: 'board', hit: [0.75, 0.0, 1.8, 1.3] },
+      { id: 'pigeonholes', hit: [5.3, 0.1, 1.7, 1.2] },
+      { id: 'batteries', hit: [7.05, 0.2, 1.4, 1.3] },
+      { id: 'key', hit: [6.2, 3.1, 1.1, 0.75] },
+      { id: 'blanks', hit: [0.9, 3.6, 1.2, 1.2] },
+    ],
   },
   home: {
     floor: '#A8875E', wall: '#9A7A52', name: 'Home', earth: true,
-    solid: ['1-2', '2-2', '6-2', '7-2', '5-3', '2-5', '3-5'],
+    solid: ['1-2', '2-2', '6-2', '7-2', '5-3', '2-5', '3-5', '1-3', '7-3', '7-5'],
     npc: { id: 'ruth', x: 5.5, y: 3.6, at: [5, 4] },
     things: [
       { id: 'bed', hit: [0.75, 1.5, 2.4, 1.4], at: [2, 3] },
       { id: 'jars', hit: [3.3, 0.0, 2.2, 1.3] },
-      { id: 'almanac', hit: [2.4, 4.9, 1.2, 0.8] },
+      { id: 'almanac', hit: [2.4, 4.85, 1.2, 0.8] },
+      { id: 'calendar', hit: [7.5, -0.05, 0.95, 1.2] },
+      { id: 'bible', hit: [2.1, -0.1, 1.05, 1.0] },
+      { id: 'trunk', hit: [0.95, 3.0, 1.2, 0.95] },
     ],
   },
 };
@@ -691,6 +736,87 @@ export function roomSolid(room) {
   return s;
 }
 
+// ---- small goods, all drawn standing on a baseline y and centered on x
+
+function crock(ctx, x, y, w, h, body, band) {
+  rr(ctx, x - w / 2, y - h, w, h, w * 0.32); inked(ctx, shade(ctx, x - w / 2, y - h, w, h, body), 0.03);
+  if (band) { ctx.fillStyle = band; ctx.fillRect(x - w / 2 + 0.03, y - h * 0.64, w - 0.06, h * 0.14); }
+  rr(ctx, x - w * 0.3, y - h - 0.05, w * 0.6, 0.08, 0.02); inked(ctx, dark(body, 0.18), 0.025);
+}
+function tin(ctx, x, y, w, h, body, label) {
+  rr(ctx, x - w / 2, y - h, w, h, 0.025); inked(ctx, shade(ctx, x - w / 2, y - h, w, h, body), 0.03);
+  if (label) { ctx.fillStyle = label; ctx.fillRect(x - w / 2 + 0.025, y - h * 0.7, w - 0.05, h * 0.36); }
+  line(ctx, x - w / 2 + 0.02, y - h + 0.05, x + w / 2 - 0.02, y - h + 0.05, dark(body, 0.3), 0.02);
+}
+function bottle(ctx, x, y, h, body) {
+  const w = 0.14;
+  rr(ctx, x - w / 2, y - h * 0.68, w, h * 0.68, 0.035); inked(ctx, body, 0.025);
+  rr(ctx, x - 0.028, y - h, 0.056, h * 0.36, 0.012); inked(ctx, body, 0.022);
+  line(ctx, x - 0.03, y - h * 0.58, x - 0.03, y - h * 0.14, 'rgba(255,255,255,.45)', 0.022);
+}
+function sack(ctx, x, y, w, h, body, label, size = 0.13) {
+  ctx.beginPath(); ctx.moveTo(x - w / 2, y);
+  ctx.bezierCurveTo(x - w / 2 - 0.05, y - h * 0.7, x - w * 0.32, y - h, x - w * 0.12, y - h);
+  ctx.lineTo(x + w * 0.12, y - h);
+  ctx.bezierCurveTo(x + w * 0.32, y - h, x + w / 2 + 0.05, y - h * 0.7, x + w / 2, y); ctx.closePath();
+  inked(ctx, shade(ctx, x - w / 2, y - h, w, h, body), 0.032);
+  line(ctx, x - w * 0.17, y - h * 0.84, x + w * 0.17, y - h * 0.84, dark(body, 0.4), 0.03);
+  if (label) text(ctx, label, x, y - h * 0.42, size, '#6A3A24', w * 0.86);
+}
+function bolt(ctx, x, y, w, h, body, stripe) {
+  rr(ctx, x - w / 2, y - h, w, h, 0.03); inked(ctx, body, 0.03);
+  ctx.save(); rr(ctx, x - w / 2, y - h, w, h, 0.03); ctx.clip();
+  for (let k = 1; k < 4; k++) line(ctx, x - w / 2, y - (h * k) / 4, x + w / 2, y - (h * k) / 4, stripe, 0.035);
+  for (let k = 1; k < 3; k++) line(ctx, x - w / 2 + (w * k) / 3, y - h, x - w / 2 + (w * k) / 3, y, stripe, 0.035);
+  ctx.restore();
+  rr(ctx, x - w / 2, y - h, w, h, 0.03); ctx.strokeStyle = INK; ctx.lineWidth = 0.03; ctx.stroke();
+}
+function lamp(ctx, x, y, s = 1) {
+  rr(ctx, x - 0.12 * s, y - 0.08 * s, 0.24 * s, 0.08 * s, 0.02); inked(ctx, '#C9A14A', 0.025);
+  ctx.beginPath(); ctx.ellipse(x, y - 0.18 * s, 0.13 * s, 0.1 * s, 0, 0, Math.PI * 2); inked(ctx, '#B5D3D8', 0.025);
+  rr(ctx, x - 0.055 * s, y - 0.5 * s, 0.11 * s, 0.24 * s, 0.035 * s); inked(ctx, 'rgba(244,250,250,.92)', 0.022);
+  ctx.beginPath(); ctx.ellipse(x, y - 0.34 * s, 0.025 * s, 0.05 * s, 0, 0, Math.PI * 2); ctx.fillStyle = '#F2B84A'; ctx.fill();
+}
+function boots(ctx, x, y) {
+  for (const dx of [-0.1, 0.1]) {
+    path(ctx, [[x + dx - 0.07, y - 0.42], [x + dx + 0.06, y - 0.42], [x + dx + 0.06, y - 0.1], [x + dx + 0.16, y - 0.06], [x + dx + 0.16, y], [x + dx - 0.07, y]]);
+    inked(ctx, '#5A3A26', 0.028);
+  }
+}
+function keg(ctx, x, y, s = 1) {
+  shadow(ctx, x + 0.04, y, 0.24 * s, 0.08 * s);
+  rr(ctx, x - 0.2 * s, y - 0.42 * s, 0.4 * s, 0.42 * s, 0.09 * s); inked(ctx, shade(ctx, x - 0.2, y - 0.4, 0.4, 0.4, '#A8774A'), 0.035);
+  line(ctx, x - 0.2 * s, y - 0.32 * s, x + 0.2 * s, y - 0.32 * s, '#4A4440', 0.035); line(ctx, x - 0.2 * s, y - 0.1 * s, x + 0.2 * s, y - 0.1 * s, '#4A4440', 0.035);
+  ctx.beginPath(); ctx.ellipse(x, y - 0.42 * s, 0.18 * s, 0.06 * s, 0, 0, Math.PI * 2); inked(ctx, '#7A7A80', 0.03);
+}
+// A paper price tag, centered at x, y. The first line is the thing, the second the price.
+function tag(ctx, lines, x, y, rot = -0.06) {
+  const fs = 0.23, lh = 0.27;
+  const width = Math.max(...lines.map((s) => s.length)) * fs * 0.6 + 0.26;
+  const h = lines.length * lh + 0.1;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  line(ctx, 0, -h / 2, 0, -h / 2 - 0.16, INK, 0.02);
+  rr(ctx, -width / 2 + 0.03, -h / 2 + 0.04, width, h, 0.05); ctx.fillStyle = 'rgba(42,36,32,.22)'; ctx.fill();
+  rr(ctx, -width / 2, -h / 2, width, h, 0.05); inked(ctx, '#FBF5E6', 0.035);
+  lines.forEach((s, i) => text(ctx, s, 0, -h / 2 + 0.05 + lh * (i + 0.5), fs, i ? '#8A3A2A' : INK, width - 0.12));
+  ctx.restore();
+}
+function wallClock(ctx, x, y, minute) {
+  // A regulator clock: wooden case, a face, a pendulum window.
+  rr(ctx, x - 0.36, y - 0.36, 0.72, 1.3, 0.12); inked(ctx, shade(ctx, x - 0.36, y - 0.36, 0.72, 1.3, '#6B4226'), 0.04);
+  ctx.beginPath(); ctx.arc(x, y, 0.28, 0, Math.PI * 2); inked(ctx, '#F6EEDB', 0.035);
+  for (let k = 0; k < 12; k++) { const a = (k * Math.PI) / 6; line(ctx, x + Math.cos(a) * 0.22, y + Math.sin(a) * 0.22, x + Math.cos(a) * 0.25, y + Math.sin(a) * 0.25, INK, 0.02); }
+  const m = minute == null ? 600 : minute;
+  const ha = ((m / 60) % 12) / 12 * Math.PI * 2 - Math.PI / 2, ma = (m % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+  line(ctx, x, y, x + Math.cos(ha) * 0.13, y + Math.sin(ha) * 0.13, INK, 0.035);
+  line(ctx, x, y, x + Math.cos(ma) * 0.2, y + Math.sin(ma) * 0.2, INK, 0.025);
+  rr(ctx, x - 0.2, y + 0.36, 0.4, 0.5, 0.04); inked(ctx, '#3A3028', 0.03);
+  line(ctx, x, y + 0.38, x, y + 0.72, '#C9A14A', 0.02);
+  ctx.beginPath(); ctx.arc(x, y + 0.74, 0.07, 0, Math.PI * 2); ctx.fillStyle = '#D8B04A'; ctx.fill();
+}
+
+// ---- the back walls and floors, baked once per visit (and again when what they show changes)
+
 export function drawRoom(ctx, key, S) {
   const room = ROOMS[key];
   ctx.fillStyle = '#2A2420'; ctx.fillRect(-6, -6, 21, 21);
@@ -698,9 +824,17 @@ export function drawRoom(ctx, key, S) {
   if (room.earth) {
     const r = rng(3);
     for (let i = 0; i < 80; i++) { ctx.beginPath(); ctx.arc(0.6 + r() * 7.8, 1.6 + r() * 6.8, 0.03 + r() * 0.05, 0, Math.PI * 2); ctx.fillStyle = dark(room.floor, 0.15); ctx.fill(); }
-    ctx.beginPath(); ctx.ellipse(4.5, 6.4, 1.6, 0.95, 0, 0, Math.PI * 2); ctx.fillStyle = '#B5532E'; ctx.fill();
-    ctx.beginPath(); ctx.ellipse(4.5, 6.4, 1.25, 0.7, 0, 0, Math.PI * 2); ctx.strokeStyle = '#E6C77A'; ctx.lineWidth = 0.06; ctx.stroke();
+    // a braided rag rug
+    for (const [rx, ry, c] of [[1.7, 1.0, '#B5532E'], [1.45, 0.82, '#E6C77A'], [1.2, 0.64, '#5F7F93'], [0.9, 0.44, '#B5532E']]) {
+      ctx.beginPath(); ctx.ellipse(4.5, 6.6, rx, ry, 0, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill();
+    }
+    ctx.beginPath(); ctx.ellipse(4.5, 6.6, 1.7, 1.0, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(42,36,32,.4)'; ctx.lineWidth = 0.03; ctx.stroke();
   } else for (let y = 1.5; y < 8.5; y += 0.36) line(ctx, 0.5, y, 8.5, y, dark(room.floor, 0.18), 0.025);
+  if (key === 'bank') {
+    // a runner from the door to the teller's window
+    rr(ctx, 3.85, 4.75, 1.3, 3.8, 0.04); ctx.fillStyle = '#8A2E24'; ctx.fill();
+    rr(ctx, 3.95, 4.85, 1.1, 3.6, 0.03); ctx.strokeStyle = '#D8B04A'; ctx.lineWidth = 0.04; ctx.stroke();
+  }
   // back wall
   ctx.fillStyle = shade(ctx, 0.5, 0, 8, 1.8, room.wall); ctx.fillRect(0.5, -0.4, 8, 1.95);
   if (key === 'home') {
@@ -715,32 +849,59 @@ export function drawRoom(ctx, key, S) {
   rr(ctx, 4.05, 8.0, 0.9, 0.55, 0.06); inked(ctx, '#8A5A33', 0.04);
   for (let i = 0; i < 4; i++) line(ctx, 4.15, 8.1 + i * 0.12, 4.85, 8.1 + i * 0.12, '#B5863A', 0.03);
 
-  if (key === 'store') {
-    for (const sy of [-0.1, 0.55]) {
-      rr(ctx, 0.7, sy + 0.42, 5.1, 0.1, 0.02); inked(ctx, '#7A5434', 0.035);
-      const cols = ['#B5532E', '#D8B04A', '#6E8F4E', '#3E6C9A', '#E8DCC0', '#8A3A2A', '#C9A06A'];
-      for (let i = 0; i < 12; i++) { rr(ctx, 0.8 + i * 0.41, sy + 0.08, 0.3, 0.34, 0.04); inked(ctx, cols[(i * 3 + (sy > 0 ? 2 : 0)) % cols.length], 0.025); }
-    }
-    slate(ctx, 5.95, 0.05, 1.8, 1.3, S);
-  }
+  // the room's name, hung over the door you came in by
+  text(ctx, { store: "PRUITT'S GOODS", bank: 'J. COLE & CO., BANKERS', wire: 'WESTERN UNION TELEGRAPH', home: S.family ? `THE ${S.family.toUpperCase()} PLACE` : 'HOME' }[key], 4.5, -1.05, 0.42, '#E8DCC0', 8.6);
+  if (key === 'store') storeWall(ctx);
   if (key === 'bank') {
     rr(ctx, 1.0, -0.05, 2.0, 1.15, 0.04); inked(ctx, '#F2E6CC', 0.04);
-    text(ctx, 'FIVE PER CENT', 2.0, 0.28, 0.17, INK); text(ctx, 'PAID ON DEPOSITS', 2.0, 0.54, 0.14, INK); text(ctx, 'J. COLE, PRES.', 2.0, 0.82, 0.12, '#5A4A3A');
+    text(ctx, 'FIVE PER CENT', 2.0, 0.24, 0.2, INK); text(ctx, 'ON DEPOSITS', 2.0, 0.52, 0.17, INK); text(ctx, 'J. COLE, PRES.', 2.0, 0.82, 0.13, '#5A4A3A');
+    wallClock(ctx, 4.5, 0.05, S.minute);
+    windowPane(ctx, 5.2, -0.2, 1.1, 1.15, { frame: '#E8DCC0' });
     rr(ctx, 6.6, -0.1, 1.8, 2.4, 0.08); inked(ctx, '#4A4A52');
-    ctx.beginPath(); ctx.arc(7.5, 1.0, 0.65, 0, Math.PI * 2); inked(ctx, '#6A6A74', 0.05);
+    rr(ctx, 6.75, 0.0, 1.5, 2.15, 0.06); ctx.strokeStyle = '#6A6A74'; ctx.lineWidth = 0.04; ctx.stroke();
+    ctx.beginPath(); ctx.arc(7.5, 1.0, 0.62, 0, Math.PI * 2); inked(ctx, '#6A6A74', 0.05);
     ctx.beginPath(); ctx.arc(7.5, 1.0, 0.18, 0, Math.PI * 2); inked(ctx, '#C9A14A', 0.04);
     for (let k = 0; k < 6; k++) { const a = (k * Math.PI) / 3; line(ctx, 7.5 + Math.cos(a) * 0.2, 1 + Math.sin(a) * 0.2, 7.5 + Math.cos(a) * 0.5, 1 + Math.sin(a) * 0.5, '#C9A14A', 0.05); }
+    text(ctx, 'DIEBOLD', 7.5, 0.22, 0.13, '#C9A14A');
     if (S.bankClosed) { line(ctx, 6.5, 0.0, 8.5, 2.2, '#C9A06A', 0.25); line(ctx, 8.5, 0.0, 6.5, 2.2, '#C9A06A', 0.25); }
   }
   if (key === 'wire') {
     rr(ctx, 0.75, 0.0, 1.8, 1.3, 0.05); inked(ctx, '#2E3A34', 0.06);
-    text(ctx, 'CHICAGO', 1.65, 0.28, 0.18, '#F2E6CC');
-    text(ctx, S.boardPrice || 'WHEAT  $ ?', 1.65, 0.62, 0.2, '#F2E6CC');
-    text(ctx, S.boardNote || 'read for $1', 1.65, 0.98, 0.14, '#C9D2C2');
-    ctx.beginPath(); ctx.arc(4.5, 0.6, 0.38, 0, Math.PI * 2); inked(ctx, '#F2E6CC', 0.05);
-    line(ctx, 4.5, 0.6, 4.5, 0.36, INK, 0.04); line(ctx, 4.5, 0.6, 4.68, 0.66, INK, 0.04);
+    text(ctx, 'CHICAGO', 1.65, 0.28, 0.2, '#F2E6CC');
+    text(ctx, S.boardPrice || 'WHEAT  $ ?', 1.65, 0.62, 0.22, '#F2E6CC');
+    text(ctx, S.boardNote || 'a dollar to read', 1.65, 0.98, 0.15, '#C9D2C2');
+    wallClock(ctx, 3.9, 0.0, S.minute);
+    signBoard(ctx, 'TELEGRAPH', 5.25, -0.34, 3.05, 0.4, '#2F3A4E', '#F2E6CC', 0.24);
+    // pigeonholes with telegrams waiting to be fetched
+    rr(ctx, 5.3, 0.15, 1.65, 1.1, 0.03); inked(ctx, '#7A5434', 0.04);
+    for (let r2 = 0; r2 < 3; r2++) for (let c = 0; c < 4; c++) {
+      const cx = 5.38 + c * 0.39, cy = 0.22 + r2 * 0.34;
+      ctx.fillStyle = '#4A3424'; ctx.fillRect(cx, cy, 0.33, 0.28);
+      if ((r2 * 4 + c) % 3 !== 1) { ctx.save(); ctx.translate(cx + 0.16, cy + 0.2); ctx.rotate(((r2 + c) % 2 ? 0.12 : -0.08)); ctx.fillStyle = (r2 + c) % 4 ? '#F2E6CC' : '#E8D27A'; ctx.fillRect(-0.12, -0.1, 0.24, 0.12); ctx.restore(); }
+    }
+    // a shelf of battery jars that drive the line
+    rr(ctx, 7.05, 1.12, 1.35, 0.09, 0.02); inked(ctx, '#7A5434', 0.03);
+    for (let i = 0; i < 4; i++) {
+      const bx = 7.22 + i * 0.33;
+      rr(ctx, bx - 0.13, 0.68, 0.26, 0.44, 0.04); inked(ctx, 'rgba(210,230,236,.9)', 0.025);
+      ctx.fillStyle = '#4F8FB8'; ctx.fillRect(bx - 0.11, 0.84, 0.22, 0.26);
+      line(ctx, bx, 0.6, bx, 0.95, '#8A8A90', 0.035);
+      if (i < 3) line(ctx, bx, 0.6, bx + 0.33, 0.6, '#8A3A2A', 0.018);
+    }
+    line(ctx, 8.21, 0.6, 8.3, -0.4, '#8A3A2A', 0.02); line(ctx, 7.22, 0.6, 7.05, 0.3, INK, 0.02); line(ctx, 7.05, 0.3, 7.05, -0.4, INK, 0.02);
   }
   if (key === 'home') {
+    // a small deep-set window with a curtain
+    rr(ctx, 0.85, -0.15, 1.05, 0.95, 0.06); inked(ctx, '#6A4E30', 0.04);
+    windowPane(ctx, 0.95, -0.07, 0.85, 0.75, { frame: '#C9A06A' });
+    path(ctx, [[0.9, -0.12], [1.3, -0.12], [1.05, 0.75], [0.9, 0.75]]); inked(ctx, '#E8C9B0', 0.03);
+    // the family Bible and a tintype on a little shelf
+    rr(ctx, 2.15, 0.62, 0.95, 0.08, 0.02); inked(ctx, '#7A5434', 0.03);
+    rr(ctx, 2.25, 0.36, 0.42, 0.27, 0.03); inked(ctx, '#3A2A20', 0.03); line(ctx, 2.3, 0.4, 2.3, 0.6, '#C9A14A', 0.02);
+    rr(ctx, 2.75, 0.18, 0.28, 0.42, 0.03); inked(ctx, '#C9A14A', 0.03); rr(ctx, 2.8, 0.23, 0.18, 0.32, 0.02); ctx.fillStyle = '#6A6A64'; ctx.fill();
+    ctx.beginPath(); ctx.arc(2.89, 0.33, 0.05, 0, Math.PI * 2); ctx.fillStyle = '#B8B0A0'; ctx.fill();
+    // dried herbs hanging from a peg
+    for (let i = 0; i < 3; i++) { line(ctx, 2.3 + i * 0.3, -0.3, 2.3 + i * 0.3, -0.05, '#6A4E30', 0.02); ctx.beginPath(); ctx.ellipse(2.3 + i * 0.3, 0.02, 0.08, 0.12, 0, 0, Math.PI * 2); ctx.fillStyle = ['#7E9A50', '#9A8A50', '#6E8A48'][i]; ctx.fill(); }
     // the cellar shelf: you can see the jars you've put up
     rr(ctx, 3.3, 0.0, 2.2, 1.3, 0.04); inked(ctx, '#7A5434');
     for (let row = 0; row < 2; row++) {
@@ -753,49 +914,239 @@ export function drawRoom(ctx, key, S) {
       }
     }
     line(ctx, 6.75, 1.2, 6.75, -0.4, INK, 0.16); line(ctx, 6.75, 1.2, 6.75, -0.4, '#4A4A50', 0.1);
-    rr(ctx, 7.6, 0.1, 0.7, 0.85, 0.03); inked(ctx, '#F4F0E4', 0.035);
-    for (let i = 0; i < 4; i++) line(ctx, 7.7, 0.35 + i * 0.15, 8.2, 0.35 + i * 0.15, '#8A3A2A', 0.02);
+    // Ruth's calendar, with her pencil sums down the margin
+    rr(ctx, 7.55, 0.0, 0.85, 1.1, 0.03); inked(ctx, '#F4F0E4', 0.035);
+    ctx.fillStyle = '#8A3A2A'; ctx.fillRect(7.6, 0.05, 0.75, 0.2);
+    text(ctx, String(S.year || 1866), 7.97, 0.15, 0.14, '#F4F0E4');
+    ctx.strokeStyle = 'rgba(58,42,32,.35)'; ctx.lineWidth = 0.012;
+    for (let r2 = 0; r2 < 4; r2++) for (let c = 0; c < 5; c++) ctx.strokeRect(7.62 + c * 0.1, 0.32 + r2 * 0.12, 0.1, 0.12);
+    for (let i = 0; i < 4; i++) line(ctx, 8.15, 0.36 + i * 0.13, 8.32, 0.36 + i * 0.13, '#5A5A62', 0.018);
+    line(ctx, 8.12, 0.86, 8.34, 0.86, '#5A5A62', 0.02);
   }
 }
 
-// Furniture sorted with the people, so a counter hides the shopkeeper's legs but not yours.
+function storeWall(ctx) {
+  // The goods cabinet: two shelves over a row of drawers.
+  rr(ctx, 0.62, -0.38, 5.16, 1.9, 0.04); inked(ctx, '#7A5434', 0.045);
+  ctx.fillStyle = '#B98352'; ctx.fillRect(0.72, -0.3, 4.96, 1.24);
+  const shelf = (yb) => { rr(ctx, 0.66, yb, 5.08, 0.09, 0.02); inked(ctx, '#7A5434', 0.03); };
+  const row = (items, yb) => {
+    let x = 0.84;
+    for (const it of items) {
+      const w = it.w;
+      const cx = x + w / 2;
+      if (it.k === 'crock') crock(ctx, cx, yb, w, it.h, it.c, it.b);
+      if (it.k === 'tin') tin(ctx, cx, yb, w, it.h, it.c, it.b);
+      if (it.k === 'bottle') bottle(ctx, cx, yb, it.h, it.c);
+      if (it.k === 'lamp') lamp(ctx, cx, yb, 0.95);
+      if (it.k === 'sack') sack(ctx, cx, yb, w, it.h, it.c, it.l, 0.1);
+      if (it.k === 'bolt') bolt(ctx, cx, yb, w, it.h, it.c, it.b);
+      if (it.k === 'boots') boots(ctx, cx, yb);
+      x += w + 0.06;
+    }
+  };
+  row([
+    { k: 'crock', w: 0.34, h: 0.4, c: '#E6D3A0', b: '#3E6C9A' }, { k: 'crock', w: 0.3, h: 0.34, c: '#E6D3A0', b: '#3E6C9A' },
+    { k: 'tin', w: 0.24, h: 0.36, c: '#B5532E', b: '#E8DCC0' }, { k: 'tin', w: 0.24, h: 0.36, c: '#B5532E', b: '#E8DCC0' },
+    { k: 'bottle', w: 0.14, h: 0.46, c: '#5E7F4E' }, { k: 'bottle', w: 0.14, h: 0.42, c: '#7A4A2A' }, { k: 'bottle', w: 0.14, h: 0.46, c: '#5E7F4E' },
+    { k: 'tin', w: 0.3, h: 0.3, c: '#3E6C9A', b: '#D8B04A' }, { k: 'tin', w: 0.3, h: 0.3, c: '#3E6C9A', b: '#D8B04A' },
+    { k: 'lamp', w: 0.26 }, { k: 'crock', w: 0.34, h: 0.38, c: '#9A9A96', b: '#5A5A62' },
+    { k: 'tin', w: 0.22, h: 0.4, c: '#D8B04A', b: '#8A3A2A' }, { k: 'tin', w: 0.22, h: 0.4, c: '#D8B04A', b: '#8A3A2A' },
+    { k: 'bottle', w: 0.14, h: 0.4, c: '#8A3A2A' },
+  ], 0.26);
+  shelf(0.26);
+  row([
+    { k: 'sack', w: 0.5, h: 0.5, c: '#F2EAD6', l: 'FLOUR' }, { k: 'sack', w: 0.46, h: 0.46, c: '#F2EAD6', l: 'FLOUR' },
+    { k: 'bolt', w: 0.4, h: 0.38, c: '#C9674E', b: '#F2E0D0' }, { k: 'bolt', w: 0.4, h: 0.38, c: '#5F7F93', b: '#DCE6EC' }, { k: 'bolt', w: 0.4, h: 0.38, c: '#D8B04A', b: '#F6EAC8' },
+    { k: 'sack', w: 0.48, h: 0.44, c: '#B98352', l: 'COFFEE' }, { k: 'boots', w: 0.42 },
+    { k: 'crock', w: 0.36, h: 0.4, c: '#E6D3A0', b: '#8A3A2A' }, { k: 'tin', w: 0.32, h: 0.28, c: '#6E8F4E', b: '#F2E6CC' },
+  ], 0.92);
+  shelf(0.92);
+  // drawers
+  for (let i = 0; i < 6; i++) {
+    rr(ctx, 0.74 + i * 0.82, 1.06, 0.76, 0.38, 0.03); inked(ctx, '#9A6A3E', 0.03);
+    ctx.beginPath(); ctx.arc(1.12 + i * 0.82, 1.25, 0.04, 0, Math.PI * 2); ctx.fillStyle = '#D8B04A'; ctx.fill();
+  }
+  // Tools hung on pegs: a grain cradle, a fork, a shovel, rope and a lantern.
+  line(ctx, 5.95, -0.18, 8.35, -0.18, '#7A5434', 0.08);
+  for (const px of [6.2, 6.95, 7.45, 7.8, 8.15]) { ctx.beginPath(); ctx.arc(px, -0.18, 0.04, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill(); }
+  // cradle scythe
+  line(ctx, 6.05, -0.12, 6.55, 1.42, INK, 0.08); line(ctx, 6.05, -0.12, 6.55, 1.42, '#B98352', 0.045);
+  ctx.beginPath(); ctx.moveTo(6.5, 1.36); ctx.quadraticCurveTo(6.1, 1.5, 5.98, 1.18); ctx.lineTo(6.04, 1.2); ctx.quadraticCurveTo(6.16, 1.4, 6.5, 1.3); ctx.closePath(); inked(ctx, '#B8BCC4', 0.03);
+  for (let i = 0; i < 4; i++) { const y0 = 0.5 + i * 0.18; ctx.beginPath(); ctx.moveTo(6.24 + i * 0.06, y0); ctx.quadraticCurveTo(6.0 + i * 0.05, y0 + 0.2, 6.0 + i * 0.03, y0 + 0.48); ctx.strokeStyle = '#8A6A44'; ctx.lineWidth = 0.025; ctx.stroke(); }
+  // hay fork
+  line(ctx, 6.95, -0.12, 6.95, 1.0, INK, 0.07); line(ctx, 6.95, -0.12, 6.95, 1.0, '#B98352', 0.04);
+  for (const dx of [-0.1, 0, 0.1]) line(ctx, 6.95 + dx, 1.0, 6.95 + dx * 1.2, 1.4, '#8A8A90', 0.03);
+  line(ctx, 6.85, 1.0, 7.05, 1.0, '#8A8A90', 0.04);
+  // shovel
+  line(ctx, 7.45, -0.12, 7.45, 0.85, INK, 0.07); line(ctx, 7.45, -0.12, 7.45, 0.85, '#B98352', 0.04);
+  path(ctx, [[7.3, 0.85], [7.6, 0.85], [7.58, 1.25], [7.45, 1.38], [7.32, 1.25]]); inked(ctx, '#9A9EA6', 0.03);
+  // coil of rope
+  for (const r2 of [0.2, 0.14, 0.08]) { ctx.beginPath(); ctx.ellipse(7.8, 0.15, r2 * 0.9, r2, 0, 0, Math.PI * 2); ctx.strokeStyle = '#C9A06A'; ctx.lineWidth = 0.05; ctx.stroke(); }
+  // lantern
+  line(ctx, 8.15, -0.18, 8.15, 0.05, INK, 0.02);
+  rr(ctx, 8.03, 0.05, 0.24, 0.36, 0.05); inked(ctx, 'rgba(240,226,180,.9)', 0.03);
+  line(ctx, 8.03, 0.23, 8.27, 0.23, INK, 0.02); rr(ctx, 8.0, 0.4, 0.3, 0.07, 0.02); inked(ctx, '#5A5A62', 0.02);
+}
+
+// ---- furniture sorted with the people, so a counter hides the shopkeeper's legs but not yours
+
 export function roomProps(key, S) {
   const L = [];
   const counter = (x, w, wood, top) => L.push({ y: 4.7, draw: (ctx) => {
     rr(ctx, x, 3.85, w, 0.85, 0.06); inked(ctx, shade(ctx, x, 3.8, w, 0.9, wood));
+    for (let px = x + 0.9; px < x + w - 0.3; px += 1.0) line(ctx, px, 3.95, px, 4.62, dark(wood, 0.22), 0.03);
     rr(ctx, x - 0.05, 3.7, w + 0.1, 0.3, 0.05); inked(ctx, top);
   } });
+  const P = S.prices || {};
   if (key === 'store') {
-    counter(0.9, 5.2, '#8A5A33', '#A8774A');
+    counter(0.9, 6.05, '#8A5A33', '#A8774A');
+    // crates of stock behind the far end of the counter
+    L.push({ y: 3.95, draw: (ctx) => { crate(ctx, 7.5, 3.95); crate(ctx, 7.45, 3.42); } });
     L.push({ y: 4.71, draw: (ctx) => {
-      ctx.beginPath(); ctx.ellipse(1.6, 3.82, 0.3, 0.1, 0, 0, Math.PI * 2); inked(ctx, '#C9A14A', 0.035);
-      line(ctx, 1.6, 3.8, 1.6, 3.45, INK, 0.05);
-      rr(ctx, 5.2, 3.42, 0.32, 0.4, 0.06); inked(ctx, '#D99A4E', 0.035);
+      // coffee mill
+      rr(ctx, 1.05, 3.42, 0.34, 0.36, 0.03); inked(ctx, '#B5322A', 0.03);
+      ctx.beginPath(); ctx.arc(1.22, 3.34, 0.17, Math.PI, 0); inked(ctx, '#5A5A62', 0.03);
+      line(ctx, 1.22, 3.3, 1.42, 3.18, INK, 0.03);
+      // a brass scale
+      line(ctx, 1.85, 3.8, 1.85, 3.38, INK, 0.04);
+      line(ctx, 1.6, 3.4, 2.1, 3.4, '#C9A14A', 0.04);
+      for (const sx of [1.62, 2.08]) { ctx.beginPath(); ctx.ellipse(sx, 3.55, 0.14, 0.05, 0, 0, Math.PI * 2); inked(ctx, '#D8B04A', 0.025); line(ctx, sx, 3.4, sx, 3.52, INK, 0.015); }
+      // candy jars
+      for (const [cx, c] of [[2.42, '#D96A5A'], [2.74, '#E8C84A'], [3.04, '#7FB27A']]) {
+        rr(ctx, cx - 0.12, 3.44, 0.24, 0.34, 0.05); inked(ctx, 'rgba(230,240,240,.75)', 0.025);
+        ctx.fillStyle = c; ctx.fillRect(cx - 0.09, 3.58, 0.18, 0.17);
+        rr(ctx, cx - 0.08, 3.38, 0.16, 0.07, 0.02); inked(ctx, '#7A7A80', 0.02);
+      }
+      ledgerBook(ctx, 4.6, 3.47, S);
+      // preserves for sale at the end of the counter
+      for (let i = 0; i < 3; i++) { rr(ctx, 5.42 + i * 0.26, 3.42, 0.2, 0.32, 0.04); inked(ctx, '#D99A4E', 0.025); rr(ctx, 5.45 + i * 0.26, 3.37, 0.14, 0.07, 0.02); inked(ctx, '#8A6A4A', 0.02); }
+      tag(ctx, ['PRESERVES', P.jar || '$4'], 5.75, 4.32, 0.05);
     } });
-    L.push({ y: 7.0, draw: (ctx) => barrel(ctx, 7.5, 7.0) }, { y: 7.9, draw: (ctx) => barrel(ctx, 7.5, 7.9) });
+    // pot-bellied stove where the old men sit in winter
+    L.push({ y: 5.95, draw: (ctx) => {
+      shadow(ctx, 1.55, 5.95, 0.45, 0.12);
+      line(ctx, 1.55, 5.15, 1.55, 4.55, INK, 0.16); line(ctx, 1.55, 5.15, 1.55, 4.55, '#3A3A40', 0.1);
+      for (const lx of [1.3, 1.8]) line(ctx, lx, 5.95, lx - (lx < 1.55 ? 0.05 : -0.05), 5.75, INK, 0.06);
+      ctx.beginPath(); ctx.ellipse(1.55, 5.48, 0.38, 0.36, 0, 0, Math.PI * 2); inked(ctx, shade(ctx, 1.2, 5.1, 0.7, 0.7, '#3E3A3A'), 0.05);
+      rr(ctx, 1.3, 5.12, 0.5, 0.1, 0.03); inked(ctx, '#2E2A2A', 0.03);
+      rr(ctx, 1.42, 5.42, 0.26, 0.2, 0.04); inked(ctx, '#2A2420', 0.03);
+      ctx.fillStyle = '#E8853A'; ctx.fillRect(1.46, 5.5, 0.18, 0.08);
+    } });
+    // a cracker barrel with a checkers game under way
+    L.push({ y: 6.85, draw: (ctx) => {
+      barrel(ctx, 2.55, 6.85);
+      ctx.save(); ctx.translate(2.55, 6.25); ctx.scale(1, 0.42);
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { ctx.fillStyle = (i + j) % 2 ? '#2A2420' : '#C9674E'; ctx.fillRect(-0.24 + i * 0.12, -0.24 + j * 0.12, 0.12, 0.12); }
+      ctx.restore();
+      for (const [px, py, c] of [[2.43, 6.2, '#F2E6CC'], [2.62, 6.28, '#2A2420'], [2.68, 6.18, '#F2E6CC']]) { ctx.beginPath(); ctx.ellipse(px, py, 0.045, 0.025, 0, 0, Math.PI * 2); inked(ctx, c, 0.015); }
+    } });
+    // pickle and cracker barrels
+    L.push({ y: 5.95, draw: (ctx) => { barrel(ctx, 7.55, 5.95); line(ctx, 7.5, 5.35, 7.75, 5.05, INK, 0.035); } });
+    L.push({ y: 6.9, draw: (ctx) => barrel(ctx, 7.55, 6.9) });
+    // seed sacks by the door, with a price tag
     L.push({ y: 7.95, draw: (ctx) => {
-      for (const [sx, sy] of [[1.25, 7.9], [1.75, 7.95], [1.5, 7.55]]) { ctx.beginPath(); ctx.ellipse(sx, sy - 0.25, 0.28, 0.32, 0, 0, Math.PI * 2); inked(ctx, '#E2D2A8', 0.04); }
-      text(ctx, 'SEED', 1.5, 7.32, 0.16, INK);
+      sack(ctx, 1.2, 7.95, 0.5, 0.62, '#E2D2A8', 'SEED', 0.12);
+      sack(ctx, 1.75, 7.98, 0.5, 0.58, '#E2D2A8', 'SEED', 0.12);
+      sack(ctx, 1.5, 7.62, 0.46, 0.5, '#D9C79A', '', 0.12);
+      tag(ctx, ['SEED WHEAT', `${P.seed || '$1.50'} AN ACRE`], 1.55, 6.85, -0.05);
     } });
-    if (!S.plow) L.push({ y: 6.5, draw: (ctx) => { line(ctx, 6.2, 6.5, 6.9, 5.8, INK, 0.08); path(ctx, [[6.0, 6.55], [6.45, 6.35], [6.35, 6.7]]); inked(ctx, '#A8A8B0', 0.035); } });
+    // the steel plow on show, or a keg once yours is out on the claim
+    L.push({ y: 6.6, draw: (ctx) => {
+      if (S.plow) { keg(ctx, 6.4, 6.6); return; }
+      shadow(ctx, 6.35, 6.6, 0.55, 0.12);
+      line(ctx, 5.85, 6.45, 6.75, 6.3, INK, 0.1); line(ctx, 5.85, 6.45, 6.75, 6.3, '#8A5A33', 0.06);
+      line(ctx, 6.45, 6.36, 6.9, 5.7, INK, 0.07); line(ctx, 6.6, 6.33, 7.0, 5.82, INK, 0.07);
+      line(ctx, 6.45, 6.36, 6.9, 5.7, '#A8774A', 0.04); line(ctx, 6.6, 6.33, 7.0, 5.82, '#A8774A', 0.04);
+      ctx.beginPath(); ctx.moveTo(5.7, 6.62); ctx.quadraticCurveTo(5.85, 6.2, 6.25, 6.28); ctx.lineTo(6.2, 6.58); ctx.closePath(); inked(ctx, '#C4C8D0', 0.035);
+      line(ctx, 5.7, 6.62, 6.22, 6.6, '#E8ECF0', 0.03);
+      tag(ctx, ['STEEL PLOW', P.plow || '$20 CASH'], 6.3, 5.55, 0.06);
+    } });
+    // the reaper on show from 1868; kegs of nails before that
+    L.push({ y: 7.9, draw: (ctx) => {
+      if (!(S.year >= 1868) || S.reaper) { keg(ctx, 6.35, 7.85); keg(ctx, 6.9, 7.9); keg(ctx, 7.5, 7.85); return; }
+      shadow(ctx, 6.9, 7.9, 1.1, 0.16);
+      rr(ctx, 5.85, 7.45, 1.65, 0.32, 0.03); inked(ctx, '#C9A06A', 0.035);            // platform
+      line(ctx, 5.8, 7.82, 7.55, 7.82, INK, 0.05);
+      for (let x = 5.85; x < 7.5; x += 0.11) { path(ctx, [[x, 7.8], [x + 0.05, 7.9], [x + 0.1, 7.8]]); inked(ctx, '#C4C8D0', 0.015); } // cutter bar
+      ctx.beginPath(); ctx.arc(7.7, 7.5, 0.4, 0, Math.PI * 2); inked(ctx, '#B5532E', 0.05);  // drive wheel
+      for (let k = 0; k < 6; k++) { const a = (k * Math.PI) / 3; line(ctx, 7.7, 7.5, 7.7 + Math.cos(a) * 0.36, 7.5 + Math.sin(a) * 0.36, INK, 0.03); }
+      ctx.beginPath(); ctx.arc(7.7, 7.5, 0.08, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill();
+      // the reel
+      for (let k = 0; k < 5; k++) { const a = (k * Math.PI * 2) / 5 + 0.3; line(ctx, 6.6, 6.95, 6.6 + Math.cos(a) * 0.5, 6.95 + Math.sin(a) * 0.32, '#8A5A33', 0.05); }
+      ctx.beginPath(); ctx.ellipse(6.6, 6.95, 0.5, 0.32, 0, 0, Math.PI * 2); ctx.strokeStyle = INK; ctx.lineWidth = 0.03; ctx.stroke();
+      line(ctx, 7.3, 7.45, 7.55, 6.95, INK, 0.05); rr(ctx, 7.4, 6.82, 0.32, 0.14, 0.04); inked(ctx, '#5A5A62', 0.03); // seat
+      tag(ctx, ['REAPER', P.reaper || '$35 CASH'], 6.3, 7.32, -0.04);
+    } });
   }
   if (key === 'bank') {
     L.push({ y: 4.7, draw: (ctx) => {
       rr(ctx, 0.9, 3.85, 6.2, 0.85, 0.06); inked(ctx, shade(ctx, 0.9, 3.8, 6.2, 0.9, '#5A3A2A'));
-      for (let x = 1.1; x < 7; x += 0.3) line(ctx, x, 3.85, x, 3.25, INK, 0.035);
-      line(ctx, 0.9, 3.25, 7.1, 3.25, '#C9A14A', 0.06);
-      rr(ctx, 3.6, 3.62, 0.7, 0.24, 0.03); inked(ctx, '#7A2A1E', 0.03);
+      for (let px = 1.6; px < 7; px += 1.0) { rr(ctx, px - 0.32, 4.0, 0.64, 0.55, 0.03); ctx.strokeStyle = dark('#5A3A2A', 0.3); ctx.lineWidth = 0.03; ctx.stroke(); }
+      rr(ctx, 0.85, 3.7, 6.3, 0.3, 0.05); inked(ctx, '#7A4A32');
+      // the teller's cage, with a window at Cole's place
+      for (let x = 1.1; x < 7; x += 0.3) if (x < 3.9 || x > 5.1) line(ctx, x, 3.75, x, 2.95, INK, 0.035);
+      line(ctx, 0.9, 2.95, 7.1, 2.95, '#C9A14A', 0.06);
+      path(ctx, [[3.9, 3.75], [3.9, 3.25], [4.5, 2.98], [5.1, 3.25], [5.1, 3.75]], false); ctx.strokeStyle = '#C9A14A'; ctx.lineWidth = 0.05; ctx.stroke();
+      // a green-shaded lamp, a ledger and the day's cash
+      line(ctx, 2.0, 3.75, 2.0, 3.35, '#C9A14A', 0.04);
+      ctx.beginPath(); ctx.moveTo(1.75, 3.4); ctx.lineTo(2.25, 3.4); ctx.lineTo(2.12, 3.22); ctx.lineTo(1.88, 3.22); ctx.closePath(); inked(ctx, '#3E6B4A', 0.03);
+      rr(ctx, 2.6, 3.55, 0.75, 0.2, 0.02); inked(ctx, '#7A2A1E', 0.03); line(ctx, 2.97, 3.55, 2.97, 3.75, '#E6C77A', 0.02);
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(4.28, 3.72 - i * 0.05, 0.1, 0.035, 0, 0, Math.PI * 2); inked(ctx, '#E8C84A', 0.015); }
+      rr(ctx, 4.5, 3.6, 0.3, 0.14, 0.02); inked(ctx, '#B8C8A8', 0.02);
+      ctx.beginPath(); ctx.arc(5.9, 3.66, 0.08, 0, Math.PI * 2); inked(ctx, '#2A2420', 0.02); line(ctx, 5.9, 3.62, 6.05, 3.4, INK, 0.02);
     } });
     L.push({ y: 7.4, draw: (ctx) => bench(ctx, 1.6, 7.4) });
+    // a stand of deposit slips
+    L.push({ y: 6.5, draw: (ctx) => {
+      shadow(ctx, 7.5, 6.5, 0.4, 0.1);
+      line(ctx, 7.25, 6.5, 7.25, 5.95, INK, 0.06); line(ctx, 7.75, 6.5, 7.75, 5.95, INK, 0.06);
+      path(ctx, [[7.05, 5.95], [7.95, 5.95], [7.9, 5.6], [7.1, 5.6]]); inked(ctx, '#6B4226', 0.035);
+      for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(7.3 + i * 0.2, 5.78); ctx.rotate(-0.1 + i * 0.08); ctx.fillStyle = '#F6EEDB'; ctx.fillRect(-0.09, -0.07, 0.18, 0.13); ctx.restore(); }
+      ctx.beginPath(); ctx.arc(7.8, 5.72, 0.05, 0, Math.PI * 2); ctx.fillStyle = INK; ctx.fill();
+    } });
+    // a potted fern and a brass spittoon
+    L.push({ y: 7.7, draw: (ctx) => {
+      rr(ctx, 7.3, 7.35, 0.4, 0.35, 0.06); inked(ctx, '#B5532E', 0.03);
+      for (let k = 0; k < 7; k++) { const a = -Math.PI / 2 + (k - 3) * 0.38; ctx.beginPath(); ctx.ellipse(7.5 + Math.cos(a) * 0.3, 7.25 + Math.sin(a) * 0.3, 0.26, 0.07, a, 0, Math.PI * 2); ctx.fillStyle = k % 2 ? '#5E8A44' : '#74A052'; ctx.fill(); }
+      ctx.beginPath(); ctx.ellipse(6.3, 7.75, 0.16, 0.1, 0, 0, Math.PI * 2); inked(ctx, '#D8B04A', 0.025);
+    } });
   }
   if (key === 'wire') {
     counter(2.9, 5.2, '#6B4A32', '#8A6A44');
     L.push({ y: 4.71, draw: (ctx) => {
-      rr(ctx, 6.4, 3.45, 0.6, 0.3, 0.04); inked(ctx, '#3A3A44', 0.035);
-      ctx.beginPath(); ctx.arc(6.7, 3.45, 0.08, 0, Math.PI * 2); ctx.fillStyle = '#C9A14A'; ctx.fill();
-      for (let i = 0; i < 4; i++) { rr(ctx, 3.3 + i * 0.5, 3.55, 0.36, 0.2, 0.02); ctx.fillStyle = '#F6EEDB'; ctx.fill(); }
+      // the key and the sounder
+      rr(ctx, 6.35, 3.5, 0.5, 0.24, 0.03); inked(ctx, '#2E2A2A', 0.03);
+      line(ctx, 6.42, 3.5, 6.78, 3.42, '#C9A14A', 0.05);
+      ctx.beginPath(); ctx.arc(6.8, 3.42, 0.06, 0, Math.PI * 2); inked(ctx, '#2A2420', 0.02);
+      rr(ctx, 6.95, 3.35, 0.3, 0.4, 0.03); inked(ctx, '#3A3A44', 0.03);
+      for (const dx of [0.05, 0.17]) { rr(ctx, 6.95 + dx, 3.42, 0.08, 0.2, 0.02); inked(ctx, '#8A3A2A', 0.02); }
+      line(ctx, 7.25, 3.5, 7.4, 2.9, INK, 0.02);
+      // telegram blanks and a pencil
+      for (let i = 0; i < 3; i++) { ctx.save(); ctx.translate(3.6 + i * 0.12, 3.62 - i * 0.03); ctx.rotate(-0.06 + i * 0.05); ctx.fillStyle = i === 2 ? '#F2DE8A' : '#F6EEDB'; ctx.fillRect(-0.24, -0.11, 0.48, 0.22); ctx.strokeStyle = 'rgba(42,36,32,.4)'; ctx.lineWidth = 0.015; ctx.strokeRect(-0.24, -0.11, 0.48, 0.22); ctx.restore(); }
+      line(ctx, 4.25, 3.7, 4.6, 3.6, '#D8B04A', 0.035);
+      lamp(ctx, 5.0, 3.78, 0.9);
+    } });
+    // a writing shelf for customers, with blanks
+    L.push({ y: 4.75, draw: (ctx) => {
+      line(ctx, 1.15, 4.75, 1.15, 4.2, INK, 0.06); line(ctx, 1.85, 4.75, 1.85, 4.2, INK, 0.06);
+      path(ctx, [[0.95, 4.2], [2.05, 4.2], [2.0, 3.85], [1.0, 3.85]]); inked(ctx, '#8A6A44', 0.035);
+      ctx.save(); ctx.translate(1.4, 4.02); ctx.rotate(0.05); ctx.fillStyle = '#F2DE8A'; ctx.fillRect(-0.22, -0.1, 0.44, 0.2); ctx.restore();
+      line(ctx, 1.7, 4.08, 1.9, 3.95, INK, 0.025);
     } });
     L.push({ y: 6.9, draw: (ctx) => bench(ctx, 1.5, 6.9) });
+    // stove
+    L.push({ y: 6.95, draw: (ctx) => {
+      shadow(ctx, 7.5, 6.95, 0.4, 0.1);
+      line(ctx, 7.5, 6.2, 7.5, 5.5, INK, 0.14); line(ctx, 7.5, 6.2, 7.5, 5.5, '#3A3A40', 0.09);
+      ctx.beginPath(); ctx.ellipse(7.5, 6.55, 0.32, 0.36, 0, 0, Math.PI * 2); inked(ctx, '#3E3A3A', 0.045);
+      ctx.fillStyle = '#E8853A'; ctx.fillRect(7.4, 6.6, 0.2, 0.07);
+    } });
+    // a wastebasket of crumpled drafts
+    L.push({ y: 7.7, draw: (ctx) => {
+      path(ctx, [[2.75, 7.35], [3.15, 7.35], [3.08, 7.7], [2.82, 7.7]]); inked(ctx, '#A8865A', 0.03);
+      for (const [px, py] of [[2.86, 7.3], [3.0, 7.26], [3.08, 7.33]]) { ctx.beginPath(); ctx.arc(px, py, 0.07, 0, Math.PI * 2); inked(ctx, '#F2E6CC', 0.015); }
+    } });
   }
   if (key === 'home') {
     L.push({ y: 2.9, draw: (ctx) => {
@@ -804,33 +1155,76 @@ export function roomProps(key, S) {
       rr(ctx, 1.4, 1.7, 1.65, 1.1, 0.06); inked(ctx, '#B5532E', 0.04);
       for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) { ctx.fillStyle = (i + j) % 2 ? '#E6C77A' : '#3E6C9A'; ctx.fillRect(1.5 + i * 0.5, 1.8 + j * 0.45, 0.3, 0.3); }
     } });
+    // the trunk that came from back East
+    L.push({ y: 3.9, draw: (ctx) => {
+      shadow(ctx, 1.55, 3.9, 0.5, 0.1);
+      rr(ctx, 1.05, 3.35, 1.0, 0.55, 0.06); inked(ctx, shade(ctx, 1.05, 3.3, 1, 0.6, '#6B4A2E'), 0.04);
+      rr(ctx, 1.05, 3.28, 1.0, 0.18, 0.08); inked(ctx, '#7A5A3A', 0.035);
+      for (const sx of [1.3, 1.8]) line(ctx, sx, 3.3, sx, 3.88, '#4A3424', 0.05);
+      rr(ctx, 1.5, 3.48, 0.1, 0.12, 0.02); inked(ctx, '#C9A14A', 0.02);
+    } });
+    // the cookstove, a kettle on it and a woodbox beside
     L.push({ y: 2.5, draw: (ctx) => {
       rr(ctx, 6.1, 1.25, 1.3, 1.25, 0.08); inked(ctx, '#3A3A40');
       rr(ctx, 6.3, 1.75, 0.9, 0.5, 0.05); inked(ctx, '#B5532E', 0.035);
       ctx.beginPath(); ctx.ellipse(6.75, 1.2, 0.35, 0.14, 0, 0, Math.PI * 2); inked(ctx, '#6A6A74', 0.035);
+      ctx.beginPath(); ctx.ellipse(7.12, 1.12, 0.17, 0.13, 0, 0, Math.PI * 2); inked(ctx, '#5A6A70', 0.03);
+      line(ctx, 7.26, 1.08, 7.38, 0.98, INK, 0.03);
+    } });
+    L.push({ y: 3.95, draw: (ctx) => {
+      rr(ctx, 7.15, 3.45, 0.75, 0.5, 0.04); inked(ctx, '#8A6A44', 0.035);
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(7.3 + i * 0.15, 3.45, 0.08, 0, Math.PI * 2); inked(ctx, '#C9A06A', 0.02); }
+    } });
+    // Ruth's rocking chair
+    L.push({ y: 3.45, draw: (ctx) => {
+      ctx.beginPath(); ctx.moveTo(5.0, 3.45); ctx.quadraticCurveTo(5.5, 3.62, 6.0, 3.45); ctx.strokeStyle = INK; ctx.lineWidth = 0.06; ctx.stroke();
+      rr(ctx, 5.1, 2.35, 0.8, 0.95, 0.12); inked(ctx, '#8A5A33', 0.04);
+      for (let i = 0; i < 3; i++) line(ctx, 5.3 + i * 0.2, 2.45, 5.3 + i * 0.2, 3.2, dark('#8A5A33', 0.3), 0.03);
     } });
     L.push({ y: 5.9, draw: (ctx) => {
       rr(ctx, 1.8, 4.9, 2.4, 1.0, 0.08); inked(ctx, '#9A6A3E');
       line(ctx, 2.0, 5.9, 2.0, 6.1, INK, 0.08); line(ctx, 4.0, 5.9, 4.0, 6.1, INK, 0.08);
       rr(ctx, 2.5, 5.05, 0.8, 0.55, 0.04); inked(ctx, '#3E5A3A', 0.04);
       text(ctx, 'ALMANAC', 2.9, 5.32, 0.12, '#E6C77A');
-      ctx.beginPath(); ctx.arc(3.75, 5.3, 0.16, 0, Math.PI * 2); inked(ctx, '#F4F0E4', 0.03);
+      lamp(ctx, 3.75, 5.5, 0.9);
+      ctx.beginPath(); ctx.arc(2.1, 5.25, 0.15, 0, Math.PI * 2); inked(ctx, '#F4F0E4', 0.03);
+    } });
+    // stools at the table
+    L.push({ y: 6.45, draw: (ctx) => { for (const sx of [2.3, 3.7]) { ctx.beginPath(); ctx.ellipse(sx, 6.25, 0.2, 0.1, 0, 0, Math.PI * 2); inked(ctx, '#A8774A', 0.03); line(ctx, sx - 0.12, 6.3, sx - 0.14, 6.45, INK, 0.04); line(ctx, sx + 0.12, 6.3, sx + 0.14, 6.45, INK, 0.04); } } });
+    // a washstand with basin and pitcher
+    L.push({ y: 5.95, draw: (ctx) => {
+      rr(ctx, 7.1, 5.3, 0.8, 0.65, 0.04); inked(ctx, '#9A6A3E', 0.035);
+      ctx.beginPath(); ctx.ellipse(7.45, 5.28, 0.28, 0.1, 0, 0, Math.PI * 2); inked(ctx, '#F4F0E4', 0.03);
+      rr(ctx, 7.62, 4.95, 0.2, 0.32, 0.06); inked(ctx, '#F4F0E4', 0.03);
+    } });
+    // a water bucket with a dipper, and a broom by the door
+    L.push({ y: 7.75, draw: (ctx) => {
+      path(ctx, [[2.2, 7.4], [2.6, 7.4], [2.55, 7.75], [2.25, 7.75]]); inked(ctx, '#A8865A', 0.03);
+      ctx.beginPath(); ctx.ellipse(2.4, 7.4, 0.2, 0.06, 0, 0, Math.PI * 2); inked(ctx, '#6FA8C8', 0.02);
+      line(ctx, 2.45, 7.38, 2.75, 7.1, INK, 0.03);
+      line(ctx, 6.4, 7.95, 6.8, 6.9, INK, 0.05); line(ctx, 6.4, 7.95, 6.8, 6.9, '#B98352', 0.03);
+      path(ctx, [[6.25, 7.95], [6.55, 7.95], [6.5, 7.6], [6.33, 7.62]]); inked(ctx, '#D9B45A', 0.025);
     } });
   }
   return L;
 }
 
-function slate(ctx, x, y, w, h, S) {
-  rr(ctx, x, y, w, h, 0.05); inked(ctx, '#7A5434', 0.05);
-  ctx.fillStyle = '#2E3A34'; ctx.fillRect(x + 0.08, y + 0.08, w - 0.16, h - 0.16);
-  text(ctx, 'ON THE BOOK', x + w / 2, y + 0.24, 0.15, '#F2E6CC');
-  const rows = [['Kessler', '$4'], [S.family || 'You', S.tab > 0.5 ? '$' + Math.round(S.tab) : '—'], ['Dunn', '$11']];
-  rows.forEach(([n, v], i) => {
-    const yy = y + 0.5 + i * 0.24;
-    const mine = i === 1;
-    ctx.save(); ctx.font = `0.16px Georgia`;
-    text(ctx, n, x + 0.55, yy, mine ? 0.17 : 0.14, mine ? '#FFFFFF' : '#C9D2C2', 0.8);
-    text(ctx, v, x + w - 0.35, yy, mine ? 0.17 : 0.14, mine && S.tab > 0.5 ? '#F2A08A' : '#C9D2C2', 0.5);
-    ctx.restore();
+// Pruitt's account book, open on the counter. The more lines on your page, the
+// longer it gets; interest lines are written in red.
+function ledgerBook(ctx, cx, cy, S) {
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(-0.05);
+  const w = 1.25, h = 0.62;
+  rr(ctx, -w / 2 - 0.05, -h / 2 + 0.03, w + 0.1, h + 0.04, 0.04); inked(ctx, '#5A2A1E', 0.03);
+  rr(ctx, -w / 2, -h / 2, w / 2, h, 0.02); inked(ctx, '#FBF5E6', 0.025);
+  rr(ctx, 0, -h / 2, w / 2, h, 0.02); inked(ctx, '#FBF5E6', 0.025);
+  line(ctx, 0, -h / 2, 0, h / 2, INK, 0.02);
+  const log = (S.bookLog || []).slice(-10);
+  log.forEach((e, i) => {
+    const col = i < 5 ? -1 : 1, rowY = -h / 2 + 0.1 + (i % 5) * 0.1;
+    const x0 = col < 0 ? -w / 2 + 0.06 : 0.06;
+    line(ctx, x0, rowY, x0 + 0.3 + ((i * 7) % 3) * 0.05, rowY, e.red ? '#B5322A' : e.paid ? '#3E6B2E' : '#3A3A44', 0.018);
+    line(ctx, x0 + 0.44, rowY, x0 + 0.54, rowY, e.red ? '#B5322A' : '#3A3A44', 0.018);
   });
+  if (S.tab > 0.5) text(ctx, '$' + Math.round(S.tab), w / 4, h / 2 - 0.07, 0.12, '#B5322A', w / 2 - 0.1);
+  ctx.restore();
 }

@@ -1,6 +1,6 @@
 // The walking world: camera, input, collision, pathfinding, sprites and daylight.
-// It knows nothing about money. main.js tells it what is where and gets told
-// what the player walked to and how far they walked.
+// It knows nothing about money. main.js tells it what is where and where the
+// player should head next, and gets told what the player walked to.
 
 import { BUILDINGS, ROOMS, W, H, CLAIM, FORTY, buildTown, drawGround, townProps, bakeBuilding, drawRoom, roomProps, roomSolid, wagon, INK } from './scenery.js';
 import { ART } from './art.js';
@@ -38,6 +38,8 @@ export function createEngine(canvas, hooks) {
   const npcs = {}; // id -> { id, x, y, scene, dir, path, name, onArrive }
   let marker = null;
   let near = null;
+  let goal = null; // { kind, id } of the next place to go; drawn as a pin, or an arrow at the screen edge
+  let floats = []; // short notes that rise off the player's head
   let fade = 0, fadeDir = 0, fadeCb = null;
   const keys = {};
   let steer = null;
@@ -232,6 +234,19 @@ export function createEngine(canvas, hooks) {
     const k = best ? best.kind + best.id : '';
     const nk = near ? near.kind + near.id : '';
     if (k !== nk) { near = best; hooks.onNear && hooks.onNear(best); }
+  }
+
+  // The point a goal pin hangs over, in tile units.
+  function resolveGoal() {
+    if (!goal) return null;
+    return targetsHere().find((t) => t.kind === goal.kind && (goal.kind === 'exit' || t.id === goal.id)) || null;
+  }
+  function anchor(t) {
+    if (t.kind === 'door') { const b = BUILDINGS.find((x) => x.id === t.id); return [b.door[0] + 0.5, b.y + b.h - 2.15]; }
+    if (t.kind === 'npc') return [t.npc.x, t.npc.y - SPRITE_H - (t.npc.name ? 0.75 : 0.25)];
+    if (t.kind === 'field') return [t.tile.x + 0.5, t.tile.y + 0.15];
+    if (t.kind === 'exit') return [4.5, 9.3];
+    return [t.hit[0] + t.hit[2] / 2, t.hit[1] - 0.05];
   }
 
   // ---------------------------------------------------------------- input
@@ -456,7 +471,62 @@ export function createEngine(canvas, hooks) {
       ctx.beginPath(); ctx.roundRect ? ctx.roundRect(sx - w / 2, sy - h, w, h, 6 * dpr) : ctx.rect(sx - w / 2, sy - h, w, h); ctx.fill(); ctx.stroke();
       ctx.fillStyle = isNear ? '#F6EEDB' : '#2A2420'; ctx.fillText(n.name, sx, sy - h / 2 + 0.5 * dpr);
     }
+    drawGoal(t);
+    drawFloats(t);
     if (fade > 0) { ctx.fillStyle = `rgba(42,36,32,${fade})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  }
+
+  // The next place to go: a red pin bobbing over it, or a round arrow at the
+  // edge of the screen pointing the way when it is out of sight.
+  function drawGoal(t) {
+    const g = enabled ? resolveGoal() : null;
+    if (!g) return;
+    if (near && near.kind === g.kind && near.id === g.id) return;
+    const [ax, ay] = anchor(g);
+    const sx = vw / 2 + (ax - cam.x) * T, sy = viewMidY() + (ay - cam.y) * T;
+    const m = 30, top = insets.top + m, bot = vh - insets.bottom - m;
+    ctx.save(); ctx.scale(dpr, dpr);
+    const out = g.kind === 'exit';
+    if (!out && sx > m && sx < vw - m && sy > top - 10 && sy < bot + 10) {
+      const bob = Math.sin(t * 4) * 4;
+      ctx.translate(sx, sy + bob);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-4, -8, -11, -12, -11, -21); ctx.arc(0, -21, 11, Math.PI, 0); ctx.bezierCurveTo(11, -12, 4, -8, 0, 0); ctx.closePath();
+      ctx.fillStyle = '#A8321F'; ctx.fill(); ctx.strokeStyle = '#2A2420'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -21, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#F6EEDB'; ctx.fill();
+    } else {
+      // where the line from the middle of the view to the goal leaves the visible box
+      // (the way out of a room is always an arrow under the door)
+      const cx = vw / 2, cy = viewMidY();
+      const dx = out ? 0 : sx - cx, dy = out ? 1 : sy - cy;
+      const k = out ? 1 : Math.min(dx ? (dx > 0 ? vw - m - cx : m - cx) / dx : Infinity, dy ? (dy > 0 ? bot - cy : top - cy) / dy : Infinity);
+      const ex = out ? sx : cx + dx * k, ey = out ? Math.min(sy + Math.sin(t * 4) * 3, bot) : cy + dy * k;
+      const a = Math.atan2(dy, dx);
+      const pulse = 1 + Math.sin(t * 4) * 0.06;
+      ctx.translate(ex, ey); ctx.scale(pulse, pulse);
+      ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI * 2);
+      ctx.fillStyle = '#F6EEDB'; ctx.fill(); ctx.strokeStyle = '#2A2420'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-4, -8); ctx.lineTo(-1, 0); ctx.lineTo(-4, 8); ctx.closePath();
+      ctx.fillStyle = '#A8321F'; ctx.fill(); ctx.strokeStyle = '#2A2420'; ctx.lineWidth = 1.4; ctx.lineJoin = 'round'; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFloats(t) {
+    floats = floats.filter((f) => t - f.t0 < 2.6);
+    if (!floats.length) return;
+    ctx.save(); ctx.scale(dpr, dpr);
+    ctx.font = 'italic 600 14px Spectral, Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of floats) {
+      const age = t - f.t0;
+      const sx = vw / 2 + (player.x - cam.x) * T, sy = viewMidY() + (player.y - SPRITE_H - 0.35 - cam.y) * T - age * 14;
+      const w = ctx.measureText(f.text).width + 20;
+      ctx.globalAlpha = Math.min(1, age * 5, (2.6 - age) * 1.5);
+      ctx.fillStyle = '#2A2420';
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(sx - w / 2, sy - 13, w, 26, 13) : ctx.rect(sx - w / 2, sy - 13, w, 26); ctx.fill();
+      ctx.fillStyle = '#F6EEDB'; ctx.fillText(f.text, sx, sy + 1);
+    }
+    ctx.restore();
   }
 
   // ---------------------------------------------------------------- the API
@@ -526,6 +596,16 @@ export function createEngine(canvas, hooks) {
       if (!n.path.length) { n.onArrive = null; cb && cb(); }
     },
     stop() { player.path = []; player.target = null; marker = null; },
+    setGoal(g) { goal = g; },
+    // Walk to the goal, or act on it if already there. Returns false if it isn't in this scene.
+    walkToGoal() {
+      const t = resolveGoal(); if (!t) return false;
+      if (distTo(t) <= t.reach) { player.path = []; hooks.onArrive(t); return true; }
+      const g = goalsFor(t); if (!g.length) { hooks.onArrive(t); return true; }
+      marker = { x: g[0][0] + 0.5, y: g[0][1] + 0.6, t: 0 };
+      walkTo(g, t); return true;
+    },
+    floatText(text) { floats.push({ text, t0: performance.now() / 1000 }); },
     toScreen(x, y) { return [vw / 2 + (x - cam.x) * T, viewMidY() + (y - cam.y) * T]; },
     walkToTarget(t) { const g = goalsFor(t); if (g.length) walkTo(g, t); },
     fieldTiles: { CLAIM, FORTY },

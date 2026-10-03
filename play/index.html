@@ -54,6 +54,11 @@
     display: flex; flex-direction: column; gap: 8px; align-items: stretch; pointer-events: none; }
   #dock > * { pointer-events: auto; max-width: 560px; width: 100%; margin: 0 auto; }
   #hint { background: rgba(42,36,32,.86); color: var(--paper); border-radius: 10px; padding: 7px 12px; font-size: 14px; text-align: center; }
+  #goal { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 8px 8px 14px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(42,36,32,.22); text-align: left; font-size: 16px; font-weight: 600; line-height: 1.25; }
+  #goal svg { flex-shrink: 0; }
+  #goalText { flex: 1; min-width: 0; }
+  #goal .go { flex-shrink: 0; background: var(--ink); color: var(--paper); border-radius: 8px; padding: 7px 12px; font-size: 14px; }
   .bigbtn { min-height: 52px; border: 0; border-radius: 12px; background: var(--ink); color: var(--paper); font-weight: 600; font-size: 16px; padding: 10px 16px; }
   .bigbtn.light { background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); }
   .bigbtn:disabled { opacity: .5; cursor: default; }
@@ -89,6 +94,14 @@
   .ledger .pos { color: var(--green); }
   .ledger .tot { border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 6px; font-weight: 700; }
   .h { font-family: var(--display); font-size: 22px; line-height: 1.15; }
+  /* Pruitt's account book, as it lies open on the counter */
+  .book { background: var(--paper-hi); border: 1.5px solid var(--ink); border-radius: 4px; padding: 12px 14px; box-shadow: 3px 4px 0 rgba(42,36,32,.3); transform: rotate(-1deg);
+    display: flex; flex-direction: column; gap: 2px; font-style: italic; font-variant-numeric: tabular-nums; }
+  .book .bh { display: flex; justify-content: space-between; font-family: var(--display); font-style: normal; color: var(--accent); font-size: 16px; border-bottom: 1.5px solid var(--ink); padding-bottom: 4px; margin-bottom: 4px; }
+  .book .l { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+  .book .l.int { color: var(--red); }
+  .book .l.paid { color: var(--green); }
+  .book .l.tot { font-style: normal; font-weight: 700; border-top: 1.5px solid var(--ink); margin-top: 4px; padding-top: 4px; }
   .stepper { display: flex; align-items: center; gap: 10px; }
   .stepper button { width: 44px; height: 44px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper-hi); font-size: 20px; }
   .stepper output { min-width: 4ch; text-align: center; font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
@@ -182,6 +195,7 @@
 
 <div id="dock" hidden>
   <div id="hint">Tap the ground to walk, or hold and drag.</div>
+  <button id="goal" hidden aria-label="Walk to the next thing to do"><svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true"><path d="M8 19 C6 14 1.5 12 1.5 7.5 A6.5 6.5 0 0 1 14.5 7.5 C14.5 12 10 14 8 19 Z" fill="#A8321F" stroke="#2A2420" stroke-width="1.5"/><circle cx="8" cy="7.5" r="2.4" fill="#F6EEDB"/></svg><span id="goalText">Buy seed at Pruitt's store</span><span class="go">Go</span></button>
   <button class="bigbtn" id="act" hidden>Go in</button>
 </div>
 <div id="banner" hidden></div>

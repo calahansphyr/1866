@@ -1,7 +1,7 @@
 // 1866: Prove Up — the Frontier chapter, 1866 to 1873.
-// Each season is three days of daylight. Walking, working the field and doing
-// business all spend it. Things happen on their own days whether or not you
-// are ready. Every December a letter home grades the year's calls against the
+// Each season is three days of daylight. Walking around is free; the road
+// between the claim and town, working the field and doing business all spend
+// daylight. Things happen on their own days whether or not you are ready. Every December a letter home grades the year's calls against the
 // ten ways the year could have gone.
 
 import { createEngine } from './engine.js';
@@ -23,7 +23,7 @@ const K = {
 };
 // Time, in minutes of daylight.
 const DAWN = 360, DUSK = 1200, DAYS = 3;
-const TIME = { tile: 3, sow: 25, sod: 480, sodPlow: 320, cut: 60, cutReaper: 25, shop: 15, wire: 20, talk: 10, amesSpring: 180, amesHarvest: 360 };
+const TIME = { road: 60, sow: 25, sod: 480, sodPlow: 320, cut: 60, cutReaper: 25, shop: 15, wire: 20, talk: 10, amesSpring: 180, amesHarvest: 360 };
 const BASE_PRICE = { 1866: 1.30, 1867: 1.45, 1868: 1.20, 1869: 0.95, 1870: 1.00, 1871: 1.15, 1872: 1.10, 1873: 0.70, 1874: 0.85 };
 const STOCK = { S1872: 30, H1872: 36, S1873: 44, H1873: 6 };
 const FIRST = 1866, LAST = 1873;
@@ -71,7 +71,7 @@ function newGame(look) {
     savings: 0, frozen: 0, loan: null, mortgage: null, stock: 0, titled: false, boughtForty: false,
     hired: false, wired: false, interestPaid: 0, bankClosed: false,
     helpedAmes: 0, amesOwes: false, amesHelpDue: false, askedRuth: 0, lateMarks: 0, onTime: 0, wires: 0,
-    almanac: {}, decisions: [], letters: [], withdrewIn73: false, seen: {}, today: {},
+    almanac: {}, decisions: [], letters: [], withdrewIn73: false, seen: {}, today: {}, bookLog: [],
   };
 }
 
@@ -97,13 +97,20 @@ function netWorth() {
     + S.acres * 8 + (S.titled ? 160 * 2 : 0) + (S.plow ? 15 : 0) + (S.reaper ? 25 : 0)
     - S.tab - (S.loan ? S.loan.due : 0) - (S.mortgage ? S.mortgage.amt : 0) - (S.reaper && S.reaper.left ? S.reaper.left * K.reaperPay : 0);
 }
-function spend(amt, lines, label) {
+function spend(amt, lines, label = 'Goods') {
   const fromCash = Math.min(S.cash, amt);
   S.cash -= fromCash;
   const onTab = amt - fromCash;
   S.tab += onTab;
+  if (onTab > 0.5) bookLine(label.split(/[,(]/)[0].trim(), onTab);
   lines && lines.push([onTab > 0.5 ? `${label} (${money(onTab)} on the book)` : label, -amt]);
   return onTab;
+}
+// Pruitt's account book: what went on it, what came off, and the interest in red.
+function bookLine(t, amt, kind) {
+  S.bookLog = S.bookLog || [];
+  S.bookLog.push({ t, a: +amt.toFixed(2), red: kind === 'interest', paid: kind === 'paid', y: S.year, s: S.season });
+  if (S.bookLog.length > 40) S.bookLog.splice(0, S.bookLog.length - 40);
 }
 function unlock(key) {
   if (S.almanac[key]) return;
@@ -190,10 +197,13 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'Enter' || e.key === ' ') && $('#sheet').hidden && near && S && S.phase === 'day' && !busy && document.activeElement === document.body) { e.preventDefault(); arriveAt(near); }
 });
 
-// Time passes for what you do. Returns false if the day is already over.
+// Time passes for what you do, never for walking around.
 function pass(min) {
   S.minute = Math.min(DUSK, S.minute + min);
-  renderClock();
+  if (S.year === 1873 && S.season === 'harvest' && S.day === 3 && S.minute >= 720 && S.world.bankFails && !S.bankClosed) closeBank();
+  if (S.phase === 'day' && S.minute >= DUSK - 60 && S.minute < DUSK && !S.today.warned) { S.today.warned = true; toast('The sun is low. An hour of light left.'); }
+  if (engine.scene !== 'town') engine.refreshRoom();
+  renderClock(); updateDock();
 }
 
 // ------------------------------------------------------------------ header
@@ -237,20 +247,54 @@ function updateField() {
   engine.setSeason(S.season);
 }
 
+// The one next thing to do, and where it is. It points at places, never at
+// choices: it says go sell the wheat, not where or when to sell it.
+function nextGoal() {
+  const sp = S.season === 'spring';
+  const own = ownAcres();
+  const mine = CLAIM.slice(0, own).concat(S.boughtForty ? FORTY : []);
+  const tile = (p) => (p ? `${p[0]},${p[1]}` : '');
+  const acres = (n) => `${n} acre${n === 1 ? '' : 's'}`;
+  const bed = (text) => ({ text, kind: 'thing', id: 'bed', scene: 'home', door: 'home' });
+  const pruitt = (text, here) => ({ text: engine.scene === 'store' ? here : text, kind: 'npc', id: 'pruitt', scene: 'store', door: 'store' });
+  let g;
+  if (S.minute >= DUSK - 90) g = bed('Head home before dark');
+  else if (sp) {
+    const seeded = Math.min(S.acres, S.seedFor), unseeded = S.acres - S.seedFor;
+    if (S.sown < seeded) g = { text: `Sow ${acres(seeded - S.sown)} of wheat on your claim`, kind: 'field', id: tile(mine[S.sown]), scene: 'town' };
+    else if (unseeded > 0 && (S.seedFor === 0 || unseeded >= 3)) g = pruitt(`Buy seed for ${acres(unseeded)} at Pruitt's store`, `Buy seed for ${acres(unseeded)} from Mr. Pruitt`);
+    else if (own < K.claimAcres) g = { text: 'Break more prairie while the light lasts', kind: 'field', id: tile(CLAIM[own]), scene: 'town' };
+    else g = bed('The wheat is in. Rest until the harvest');
+  } else if (S.ripe > S.cut) g = { text: `Cut your wheat: ${acres(S.ripe - S.cut)} standing`, kind: 'field', id: tile(mine[S.cut]), scene: 'town' };
+  else if (S.grain > 0) g = pruitt(`Sell your ${Math.round(S.grain)} bushels in town`, `Sell your ${Math.round(S.grain)} bushels`);
+  else g = bed('Get ready for winter, then turn in');
+  // From where you stand: out of this room first, or over to the right building.
+  if (g.scene !== engine.scene) return engine.scene !== 'town' ? { ...g, kind: 'exit', id: 'exit' } : { ...g, kind: 'door', id: g.door };
+  return g;
+}
+
 function updateDock() {
-  const act = $('#act'), hint = $('#hint');
+  const act = $('#act'), hint = $('#hint'), gl = $('#goal');
   if (!S || S.phase !== 'day') return;
-  if (!near) {
-    act.hidden = true;
-    hint.textContent = engine.scene === 'town'
-      ? (S.minute >= DUSK - 90 ? 'The light is going. Head home before dark.' : 'Tap where to go, or hold and drag. Walking takes daylight.')
-      : 'Tap someone to talk. Tap the doormat to leave.';
+  const g = nextGoal();
+  engine.setGoal(g);
+  $('#goalText').textContent = g.text;
+  if (near) {
+    // Standing at something: its action, plus the next step if this isn't it.
+    const atGoal = near.kind === g.kind && (g.kind === 'exit' || near.id === g.id || (g.kind === 'field' && near.kind === 'field'));
+    act.hidden = false; act.textContent = labelFor(near);
+    gl.hidden = atGoal; hint.hidden = !atGoal;
+    hint.textContent = hintFor(near);
     return;
   }
-  act.hidden = false;
-  act.textContent = labelFor(near);
-  hint.textContent = hintFor(near);
+  act.hidden = true; gl.hidden = false;
+  const tip = engine.scene === 'town' ? (S.seen.walked ? '' : 'Tap where to go, or hold and drag.') : (S.seen.looked ? '' : 'Tap anyone to talk, or anything to look at it.');
+  hint.hidden = !tip; hint.textContent = tip;
 }
+$('#goal').addEventListener('click', () => {
+  if (busy || !S || S.phase !== 'day' || !$('#sheet').hidden) return;
+  if (!engine.walkToGoal()) toast('Head outside first.');
+});
 function labelFor(t) {
   if (t.kind === 'door') return t.enter ? `Go into ${t.name === 'Home' ? 'the house' : t.name.replace(/^The /, 'the ')}` : `Knock at ${t.name.replace(/^The /, 'the ')}`;
   if (t.kind === 'npc') return NPC[t.id] ? `Talk to ${NPC[t.id][0]}` : 'Say good day';
@@ -322,21 +366,58 @@ function folk(id) {
 }
 
 function look(id) {
-  if (id === 'slate') {
-    sheet(`<div class="h">Pruitt's book</div>
-      <div class="say">Chalk on a slate behind the counter. ${S.tab > 0.5 ? `Your family's name is on it: <b>${money(S.tab)}</b>.` : 'Your family\'s line is wiped clean.'}</div>
-      <div class="note">Pruitt adds 3% a month to whatever is on the slate.</div>${leave('Back')}`);
+  S.seen.looked = true;
+  const say = (t, note = '') => sheet(`<div class="say">${t}</div>${note ? `<div class="note">${note}</div>` : ''}${leave('Back')}`);
+  const lines = {
+    shelves: 'Coffee, flour, lamp oil, calico and boots. Most families out here buy all of it on the book and settle up after the harvest.',
+    tools: 'Grain cradles, forks and shovels. With a cradle, one man cuts about an acre an hour.',
+    stove: 'The stove is cold until October. In winter half the town sits around it and argues about the railroad.',
+    checkers: 'A game left half finished on the cracker barrel. Somebody is two kings ahead.',
+    barrels: 'Pickles in one barrel, crackers in the other. The crackers are a penny each.',
+    slips: 'A stand of deposit slips and a pen on a chain.',
+    pigeonholes: 'Telegrams waiting for people who haven\'t come to town. One has been here since March.',
+    batteries: 'Glass jars of bluestone and zinc. They push the current down the line to Kansas City and on to Chicago.',
+    key: 'Finch\'s key and sounder. Chicago is days away by wagon and rail, and a minute away by wire.',
+    blanks: 'Yellow telegram blanks. You pay by the word, so nobody wastes one.',
+    bible: 'The family Bible. Births, marriages and deaths are written inside the cover, back to 1790.',
+    trunk: 'The trunk the family brought west. Everything you owned fit inside it.',
+  };
+  if (lines[id]) return say(lines[id]);
+  if (id === 'book') {
+    const log = (S.bookLog || []).slice(-12);
+    const rows = log.map((e) => `<div class="l ${e.red ? 'int' : e.paid ? 'paid' : ''}"><span>${e.t}</span><b>${e.paid ? '-' : ''}${cents(e.a)}</b></div>`).join('');
+    sheet(`<div class="book">
+        <div class="bh"><span>Pruitt's Goods</span><span>${S.look.family}</span></div>
+        ${rows || '<div class="l"><span>Nothing written yet.</span></div>'}
+        <div class="l tot"><span>Owing</span><b>${cents(S.tab)}</b></div>
+      </div>
+      <div class="note">Pruitt adds 3% a month to whatever is owing. The red lines are interest.</div>${leave('Back')}`);
     unlock('interest');
   } else if (id === 'seed') {
-    sheet(`<div class="say">Sacks of seed wheat, ${cents(K.seed)} an acre's worth. One acre of sod takes one acre of seed.</div>${leave('Back')}`);
+    say(`Sacks of seed wheat, ${cents(K.seed)} an acre's worth. One acre of broken sod takes one acre of seed.`);
+  } else if (id === 'preserves') {
+    say(`Mrs. Pruitt's preserves, ${money(K.jarCost)} a jar. In February, when there is nothing to buy, each one is about ${money(K.jarValue)} of food.`, 'Pruitt does not put preserves on the book.');
+  } else if (id === 'plow') {
+    say(S.plow ? 'Yours is out on the claim. Pruitt has another one on order.' : `A steel plow, ${money(20)} cash. Prairie sod sticks to an iron plow; this one turns it clean and breaks an acre about a third faster.`, S.plow ? '' : 'Pruitt does not sell tools on the book.');
+  } else if (id === 'reaper') {
+    if (S.year < 1868 || S.reaper) say(S.reaper ? 'Kegs of nails. Your reaper is out on the claim.' : 'Kegs of nails, tenpenny and twentypenny.');
+    else say(`A McCormick reaper, ${money(K.reaperCash)} cash. A horse pulls it, and it cuts an acre in less than half the time a cradle takes.`, 'Pruitt does not sell tools on the book.');
   } else if (id === 'vault') {
-    sheet(`<div class="say">${S.savings > 0 ? `Your passbook says ${money(S.savings)} is inside, earning 5% a year.` : 'A great iron door. Nothing of yours is behind it.'}</div>
-      <div class="note">A bank lends out most of what's in the vault. That's how it pays you interest.</div>${leave('Back')}`);
+    say(S.savings > 0 ? `Your passbook says ${money(S.savings)} is inside, earning 5% a year.` : 'A great iron door. Nothing of yours is behind it.', "A bank lends out most of what's in the vault. That's how it pays you interest.");
     unlock('saving');
   } else if (id === 'notice') {
-    sheet(`<div class="say">"FIVE PER CENT PAID ON DEPOSITS. Loans on crops and land. J. Cole, President."</div>${leave('Back')}`);
+    say('"FIVE PER CENT PAID ON DEPOSITS. Loans on crops and land. J. Cole, President."');
+  } else if (id === 'bankclock') {
+    say(`The bank clock says ${clock(S.minute)}. Mr. Cole keeps it two minutes fast.`);
   } else if (id === 'board') {
-    sheet(`<div class="say">${S.wired ? `The chalk says Chicago wheat is <b>${cents(chicago())}</b> today.` : 'The board is blank. Finch writes the Chicago price on it for customers who pay to read the wire.'}</div>${leave('Back')}`);
+    say(S.wired ? `The chalk says Chicago wheat is <b>${cents(chicago())}</b> today.` : 'The board is blank. Finch writes the Chicago price on it for customers who pay to read the wire.');
+  } else if (id === 'calendar') {
+    const t = S.tab, by = (m) => cents(t * Math.pow(1.03, m));
+    if (t > 1) {
+      sheet(`<div class="say">Ruth's calendar for ${S.year}. Down the margin, in pencil, she has worked out what Pruitt's book will say if nobody pays it.</div>
+        <div class="ledger">${[['Now', cents(t)], ['3 months', by(3)], ['6 months', by(6)], ['9 months', by(9)]].map(([k, v], i) => `<div class="l"><span>${k}</span><b class="${i ? 'neg' : ''}">${v}</b></div>`).join('')}</div>${leave('Back')}`);
+      unlock('interest');
+    } else say(`Ruth's calendar for ${S.year}. The margin is blank. There is nothing on the book to add up.`);
   } else if (id === 'jars') {
     sheet(`<div class="h">The cellar shelf</div><div class="say">${S.jars} jar${S.jars === 1 ? '' : 's'} put up, about ${money(S.jars * K.jarValue)} of winter food. An ordinary winter takes ${money(K.winter)} of food and fuel. A hard one takes ${money(K.hardWinter)}.</div>${leave('Back')}`);
     unlock('buffer');
@@ -516,7 +597,7 @@ function openStore() {
 handlers.seed = (how) => {
   const n = S.acres - S.seedFor, cost = n * K.seed;
   const hadCash = S.cash >= cost;
-  if (how === 'cash') S.cash -= cost; else { S.tab += cost; unlock('interest'); }
+  if (how === 'cash') S.cash -= cost; else { S.tab += cost; bookLine(`Seed, ${n} acres`, cost); unlock('interest'); }
   S.seedFor = S.acres; pass(TIME.shop);
   const d = S.decisions.find((x) => x.kind === 'seed' && x.year === S.year);
   if (d) { d.book = d.book || how === 'book'; d.hadCash = d.hadCash && hadCash; d.cost += cost; }
@@ -544,7 +625,7 @@ handlers.jar = (n) => {
 };
 handlers.paytab = () => {
   const pay = Math.min(S.cash, S.tab);
-  S.cash -= pay; S.tab -= pay; if (S.tab < 0.5) S.tab = 0; pass(5);
+  S.cash -= pay; S.tab -= pay; if (S.tab < 0.5) S.tab = 0; bookLine('Paid, cash', pay, 'paid'); pass(5);
   toast(S.tab ? `Paid ${money(pay)}. ${money(S.tab)} still on the slate.` : 'Pruitt wipes your line off the slate.');
   save(); engine.refreshRoom(); openStore(); render();
 };
@@ -552,6 +633,7 @@ handlers.paytab = () => {
 // ------------------------------------------------------------------ the bank
 
 function openBank() {
+  if (S.bankClosed) { sheet(`${speak('cole', '"We are closed! Closed until further notice. Please, everyone, go home."')}${leave('Walk out')}`); return; }
   const bits = [];
   const rate = S.lateMarks ? 9 : 7;
   let said = '"Five percent a year on savings, paid every winter. A bank is a safer place for money than a coffee can."';
@@ -684,7 +766,7 @@ function openDrummer() {
   sheet(bits.join('') + leave('No thank you'));
 }
 handlers.instal = () => {
-  spend(K.reaperDown); S.reaper = { left: K.reaperPays }; pass(TIME.shop);
+  spend(K.reaperDown, null, 'Reaper down payment'); S.reaper = { left: K.reaperPays }; pass(TIME.shop);
   decide({ kind: 'instal' });
   toast('A reaper, on installments. It will be on the claim by harvest.'); save(); closeSheet();
 };
@@ -749,7 +831,7 @@ function visitorSheet(k) {
       : speak('brandt', '"Have you heard? Jay Cooke is finished, in Philadelphia. The New York banks stop paying. The man at the telegraph office says all the banks out here will close too, one by one. Mine is in a sock in the barn, thank God."');
     sheet(`${news}
       <div class="say">${S.savings > 0 ? `You have ${money(S.savings)} in Mr. Cole's bank.` : 'You have nothing in the bank.'} ${S.ripe - S.cut > 0 ? `${S.ripe - S.cut} acres of your wheat are still standing.` : ''}</div>
-      <div class="note">${fails ? 'Town is a long walk. So is a winter without savings.' : 'Town is a long walk.'}</div>${leave('Thank him')}`);
+      <div class="note">${fails ? 'Town is an hour up the road. A winter without savings is longer.' : 'Town is an hour up the road.'}</div>${leave('Thank him')}`);
     unlock('bankrun');
   }
 }
@@ -785,11 +867,11 @@ function morning() {
   S.minute = DAWN; S.today = {}; S.phase = 'day';
   if (S.day === 1) S.wired = false;
   placeNpcs();
-  engine.place('town', HOME_DOOR);
+  engine.place('town', HOME_DOOR); side = 'claim';
   render(); save();
   const lines = [];
   const sp = S.season === 'spring';
-  if (S.year === FIRST && sp && S.day === 1) lines.push('Buy seed at Pruitt\'s in town, then sow it on your claim before the end of day 3. Walking and work both use daylight.');
+  if (S.year === FIRST && sp && S.day === 1) lines.push('Buy seed at Pruitt\'s in town, then sow it on your claim before the end of day 3. The road to town takes an hour each way, and work takes daylight too.');
   else if (sp && S.day === 1) lines.push(`${S.acres} acres broken. ${S.seedFor >= S.acres ? 'You have the seed.' : 'You will need seed from Pruitt\'s.'}`);
   if (sp && S.day === 2 && (S.year === 1868 || S.year === 1872)) lines.push("Market day. A salesman's wagon is in the square until dark.");
   if (!sp && S.day === 1) lines.push(S.ripe ? `${S.ripe} acres of wheat are ripe. After day 3, the heads start to shatter.` : 'Nothing is ripe in your field this year.');
@@ -801,20 +883,29 @@ function morning() {
   else engine.enable(true);
 }
 
-// Called as you walk. Returns false to stop the walk.
-function onStep(dist) {
+// Called as you walk. Walking itself is free; the road over the creek between
+// the claim and town takes an hour each way. Returns false to stop the walk.
+let side = 'claim';
+const sideOf = (y) => (y < 23.6 ? 'town' : y > 27.2 ? 'claim' : null);
+function onStep() {
   if (!S || S.phase !== 'day') return false;
-  S.minute = Math.min(DUSK, S.minute + dist * TIME.tile);
-  renderClock();
-  if (S.year === 1873 && S.season === 'harvest' && S.day === 3 && S.minute >= 720 && S.world.bankFails && !S.bankClosed) closeBank();
-  if (S.minute >= DUSK) { endDay('dusk'); return false; }
-  if (S.minute >= DUSK - 60 && !S.today.warned) { S.today.warned = true; toast('The sun is low. An hour of light left.'); }
+  if (!S.seen.walked && engine.scene === 'town') { S.seen.walked = true; updateDock(); }
+  if (engine.scene !== 'town') return true;
+  const now = sideOf(engine.player.y);
+  if (now && now !== side) {
+    side = now;
+    engine.floatText(now === 'town' ? 'An hour on the road to town' : 'An hour on the road home');
+    pass(TIME.road);
+    if (S.minute >= DUSK) { endDay('dusk'); return false; }
+  }
   return true;
 }
 function closeBank() {
   S.bankClosed = true; placeNpcs();
-  if (engine.scene === 'bank') { toast('Mr. Cole pulls down the blinds. "We are closed. Closed!"'); leaveRoom(); }
-  else if (engine.scene === 'town' && engine.player.y < 20) toast('A shout from the boardwalk: the bank has shut its doors.');
+  if (engine.scene === 'bank') {
+    toast('Mr. Cole pulls down the blinds. "We are closed. Closed!"');
+    if ($('#sheet').hidden) leaveRoom(); else onClose = () => leaveRoom();
+  } else if (engine.scene === 'town' && engine.player.y < 20) toast('A shout from the boardwalk: the bank has shut its doors.');
 }
 
 function endDay(why) {
@@ -881,6 +972,7 @@ function accrueTab(L) {
   if (S.tab > 0.5) {
     const i = S.tab * K.tabHalf;
     S.tab += i; S.interestPaid += i;
+    bookLine('Interest, 6 months', i, 'interest');
     L.push(["Interest on Pruitt's book, six months at 3% a month", -i, 'bad']);
     unlock('interest');
   }
@@ -1192,7 +1284,7 @@ async function start(state) {
   }
   const resume = S.phase === 'day' && S.minute > DAWN;
   if (resume) {
-    placeNpcs(); engine.place('town', HOME_DOOR); render(); engine.enable(true);
+    placeNpcs(); engine.place('town', HOME_DOOR); side = 'claim'; render(); engine.enable(true);
     banner(`${seasonName()} ${S.year} · Day ${S.day} of ${DAYS}`, [`${clock(S.minute)}. You are back at the house.`]);
   } else morning();
 }
@@ -1202,8 +1294,13 @@ engine = createEngine($('#scene'), {
   onArrive: (t) => arriveAt(t),
   onNear: (t) => { near = t; if (S) updateDock(); },
   onStep,
+  onScene: () => { if (S && engine && engine.scene === 'town') side = sideOf(engine.player.y) || side; },
   onBlocked: () => toast("You can't get there from here."),
-  roomState: () => (S ? { jars: S.jars, tab: S.tab, family: S.look.family, plow: S.plow, wired: S.wired, bankClosed: S.bankClosed, boardPrice: S.wired ? `WHEAT  ${cents(chicago())}` : '', boardNote: S.wired ? `${seasonName()} ${S.year}` : '' } : {}),
+  roomState: () => (S ? {
+    jars: S.jars, tab: S.tab, family: S.look.family, plow: S.plow, reaper: S.reaper, year: S.year, minute: S.minute, bookLog: S.bookLog,
+    wired: S.wired, bankClosed: S.bankClosed, boardPrice: S.wired ? `WHEAT  ${cents(chicago())}` : '', boardNote: S.wired ? `${seasonName()} ${S.year}` : '',
+    prices: { seed: cents(K.seed), plow: `${money(20)} CASH`, reaper: `${money(K.reaperCash)} CASH`, jar: `${money(K.jarCost)} A JAR` },
+  } : {}),
 });
 engine.enable(false);
 await engine.ready;
