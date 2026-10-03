@@ -1,11 +1,8 @@
 <title>1866: Prove Up</title>
-<meta name="theme-color" content="#BFE0F0">
+<meta name="theme-color" content="#F6EEDB">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Spectral:ital,wght@0,400;0,600;0,700;1,400&display=swap">
-<script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js" } }
-</script>
 <style>
-  /* Layout: the toy town fills the screen; anything you read is ink on paper laid over it. Single look, both themes. */
+  /* Layout: the town fills the screen; anything you read is ink on paper laid over it. One deliberate look in both themes. */
   :root {
     --sky: #BFE0F0;
     --paper: #F6EEDB;
@@ -33,18 +30,22 @@
 
   #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 
-  /* Header: who, when, cash, tab, cellar jars, visits as boots */
+  /* Header: who, when, cash, tab, cellar jars, daylight */
   #hud { position: fixed; left: 0; right: 0; top: 0; z-index: 5; background: var(--paper); border-bottom: 2px solid var(--ink);
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 10px; display: flex; flex-direction: column; gap: 6px;
     box-shadow: 0 4px 12px rgba(42,36,32,.14); }
   #hud .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; max-width: 720px; width: 100%; margin: 0 auto; }
   #family { font-family: var(--display); font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #when { font-style: italic; font-size: 14px; white-space: nowrap; }
-  #stats { display: flex; align-items: center; gap: 14px; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  #stats { display: flex; align-items: center; gap: 10px; white-space: nowrap; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
   #stats .s { display: flex; align-items: center; gap: 5px; }
   #tab.owed { color: var(--red); }
-  #jars, #boots { display: flex; gap: 3px; align-items: center; }
-  #boots { margin-left: auto; }
+  #jars { display: flex; gap: 4px; align-items: center; }
+  /* Daylight: a sun travels a thin bar from dawn to dusk */
+  #sun { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #sunbar { position: relative; width: 52px; height: 8px; border: 1.5px solid var(--ink); border-radius: 6px; background: linear-gradient(90deg, #F2C98A, #F6E6A8 30%, #F6E6A8 70%, #E8946A 90%, #5A5A8A); overflow: hidden; }
+  #sunleft { position: absolute; top: 0; bottom: 0; right: 0; background: repeating-linear-gradient(-45deg, rgba(42,36,32,.55) 0 2px, rgba(42,36,32,.25) 2px 4px); }
+  #sun.late { color: var(--red); }
   #hud .tools { display: flex; gap: 6px; }
   .iconbtn { width: 36px; height: 36px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper-hi); display: grid; place-items: center; padding: 0; }
 
@@ -142,16 +143,24 @@
   .hero { display: flex; justify-content: center; align-items: flex-end; height: 200px; }
   .hero svg { width: 120px; height: 200px; }
 
+  #banner { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 104px); transform: translateX(-50%); z-index: 6; width: min(420px, calc(100% - 32px));
+    background: var(--paper); border: 1.5px solid var(--ink); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 18px rgba(42,36,32,.22); display: flex; flex-direction: column; gap: 2px; }
+  #banner .d { font-family: var(--display); font-size: 18px; line-height: 1.15; }
+  #banner .e { font-size: 14px; line-height: 1.4; }
+  #fadeNote { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; color: var(--paper); font-family: var(--display); font-size: 22px; pointer-events: none; text-align: center; padding: 0 24px; }
   #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: translateX(-50%); z-index: 12; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); text-align: center; }
-  #labels { position: fixed; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
-  .blabel { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; color: var(--ink); font: 600 13px var(--body); background: var(--paper); border: 1.5px solid var(--ink); padding: 1px 8px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -100%); }
-  .blabel.near { background: var(--ink); color: var(--paper); }
-  .blabel.edge { opacity: .85; font-size: 12px; }
+  .night { color: var(--paper); display: flex; flex-direction: column; gap: 10px; margin-top: 12vh; }
+  .night .moon { display: flex; justify-content: center; }
+  .night .h { color: var(--paper); text-align: center; }
+  .night .sub { text-align: center; font-style: italic; color: #D9C9A8; font-size: 14px; }
+  .night .ledger { background: #3E352C; border-color: #8A7A62; color: var(--paper); }
+  .night .ledger .neg { color: #F2A08A; } .night .ledger .pos { color: #A8D88A; }
+  .tomorrow { border-left: 3px solid #E6C77A; padding: 4px 0 4px 12px; font-size: 15px; }
+  .timecost { font-size: 13px; color: var(--muted); font-style: italic; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
-<canvas id="scene" aria-label="The town of Abilene, Kansas"></canvas>
-<div id="labels" aria-hidden="true"></div>
+<canvas id="scene" aria-label="The town of Abilene, Kansas, and your claim south of the creek"></canvas>
 
 <header id="hud" hidden>
   <div class="row">
@@ -164,7 +173,7 @@
       <div class="s" id="tab" title="Pruitt's book"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="10" height="12" fill="#F6EEDB" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="1" width="10" height="12" fill="#F6EEDB" stroke="currentColor" stroke-width="1.4"/><path d="M6 5 H12 M6 8 H12 M6 11 H10" stroke="currentColor" stroke-width="1.2"/></svg><span id="tabv">Tab $0</span></div>
       <div id="jars" title="Cellar jars"></div>
     </div>
-    <div id="boots" title="Visits left this season"></div>
+    <div id="sun" title="Daylight left today"><div id="sunbar"><div id="sunleft"></div></div><span id="clock">6:00</span></div>
     <div class="tools">
       <button class="iconbtn" id="almBtn" aria-label="Open the Almanac"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A2420" stroke-width="2" stroke-linejoin="round"><path d="M5 3 H17 A2 2 0 0 1 19 5 V21 H7 A2 2 0 0 1 5 19 Z"/><path d="M9 8 H15 M9 12 H13"/></svg></button>
     </div>
@@ -172,12 +181,11 @@
 </header>
 
 <div id="dock" hidden>
-  <div id="hint">Tap the ground to walk. Walk up to a door or a neighbor.</div>
-  <div class="pair">
-    <button class="bigbtn" id="act" hidden>Go in</button>
-    <button class="bigbtn light" id="endBtn">End the season</button>
-  </div>
+  <div id="hint">Tap the ground to walk, or hold and drag.</div>
+  <button class="bigbtn" id="act" hidden>Go in</button>
 </div>
+<div id="banner" hidden></div>
+<div id="fadeNote" aria-live="polite"></div>
 
 <div id="veil" hidden></div>
 <section id="sheet" role="dialog" aria-modal="true" hidden><div class="in" id="sheetIn"></div></section>

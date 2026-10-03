@@ -323,24 +323,79 @@ def prop(f, c):
     return ""
 
 
+def back_view(f, c):
+    """The same figure seen from behind: no face or props, hair covers the head."""
+    s = ""
+    if c.get("dress"):
+        s += skirt(f, {**c, "apron": None})
+        if c.get("apron"):
+            s += f'<path d="M50,134 L60,142 L70,134" stroke="{c["apron"]}" stroke-width="3.4" fill="none" stroke-linecap="round"/>'
+    else:
+        s += legs(f, c)
+    if c.get("coat") and c.get("tails"):
+        s += coat_tails(f, c)
+    top = c.get("coat") or c.get("vest") or c["shirt"]
+    s += f'<path d="M36,110 C36,99 44,95 52,95 L68,95 C76,95 84,99 84,110 L86,150 C86,156 82,158 76,158 L44,158 C38,158 34,156 34,150 Z" {o(f.g(top))}/>'
+    if c.get("coat"):
+        s += f'<path d="M60,118 V158" stroke="{dark(top, 0.25)}" stroke-width="1.6"/>'
+    if c.get("suspenders"):
+        sp = c["suspenders"]
+        for d in ("M47,97 L60,124 L73,97", "M60,124 V150"):
+            s += f'<path d="{d}" stroke="{INK}" stroke-width="7.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            s += f'<path d="{d}" stroke="{sp}" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    if c.get("apron_top"):
+        s += f'<path d="M36,140 H84" stroke="{c["apron_top"]}" stroke-width="4" stroke-linecap="round"/><path d="M58,140 l-5,10 M62,140 l5,10" stroke="{c["apron_top"]}" stroke-width="3" stroke-linecap="round"/>'
+    if c.get("shawl"):
+        sh = c["shawl"]
+        s += f'<path d="M31,108 C36,94 84,94 89,108 L60,140 Z" {o(f.g(sh))}/>'
+    s += arm(f, c, "L") + arm(f, c, "R")
+    sk = c["skin"]
+    s += f'<rect x="53" y="84" width="14" height="14" fill="{dark(sk, 0.14)}" stroke="{INK}" stroke-width="{SW}"/>'
+    s += ears(f, c)
+    s += f'<ellipse cx="60" cy="60" rx="33" ry="31" {o(f.g(sk))}/>'
+    h, st = c.get("hair"), c.get("hairstyle")
+    if h:
+        d = dark(h, 0.25)
+        if st == "balding":
+            s += f'<path d="M27,68 C26,80 40,90 60,90 C80,90 94,80 93,68 C88,74 74,78 60,78 C46,78 32,74 27,68 Z" {o(f.g(h))}/>'
+        elif st == "long":
+            s += f'<path d="M27,60 C25,30 95,30 93,60 C96,92 88,104 60,104 C32,104 24,92 27,60 Z" {o(f.g(h))}/>'
+        else:
+            s += f'<path d="M27,62 C24,34 42,28 60,28 C78,28 96,34 93,62 C94,78 84,90 60,90 C36,90 26,78 27,62 Z" {o(f.g(h))}/>'
+            s += f'<path d="M44,40 C46,60 50,74 54,86 M76,40 C74,60 70,74 66,86 M60,30 V88" stroke="{d}" stroke-width="1.4" fill="none" opacity=".5"/>'
+        if st == "bun":
+            s += f'<circle cx="60" cy="50" r="12" {o(f.g(h))}/><path d="M52,48 q8,-6 16,0" stroke="{d}" stroke-width="1.4" fill="none"/>'
+    hh = c.get("hat")
+    if hh and hh[0] == "bonnet":
+        col = hh[1]
+        s += (f'<path d="M24,74 C18,30 40,17 60,17 C80,17 102,30 96,74 C90,86 76,92 60,92 C44,92 30,86 24,74 Z" {o(f.g(col))}/>'
+              f'<path d="M34,82 C48,90 72,90 86,82" stroke="{dark(col, 0.2)}" stroke-width="1.5" fill="none"/>')
+    elif hh:
+        s += hat(f, c)
+    return s
+
+
 def figure(key, c, w=120, h=200, view=None, label=None, seated=False):
-    """Full figure. view="portrait" crops to head and shoulders."""
+    """Full figure. view="portrait" crops to head and shoulders; view="back" turns it around."""
     f = Fig(key)
     body = ""
     if view != "portrait":
         body += '<ellipse cx="60" cy="191" rx="38" ry="6" fill="#2A2420" opacity=".18"/>'
-    body += hair_back(f, c)
-    if c.get("dress"):
-        body += skirt(f, c)
-    elif not seated:
-        body += legs(f, c)
-    if c.get("coat") and c.get("tails"):
-        body += coat_tails(f, c)
-    body += torso(f, c)
-    body += arm(f, c, "L") + arm(f, c, "R")
-    body += overlay(f, c)
-    body += head(f, c) + hair_front(f, c) + face(f, c) + hat(f, c)
-    body += prop(f, c)
+    if view == "back":
+        body += back_view(f, c)
+    else:
+        body += hair_back(f, c)
+        if c.get("dress"):
+            body += skirt(f, c)
+        elif not seated:
+            body += legs(f, c)
+        if c.get("coat") and c.get("tails"):
+            body += coat_tails(f, c)
+        body += torso(f, c)
+        body += arm(f, c, "L") + arm(f, c, "R")
+        body += overlay(f, c)
+        body += head(f, c) + hair_front(f, c) + face(f, c) + hat(f, c)
+        body += prop(f, c)
     vb = "0 0 120 200" if view != "portrait" else "12 8 96 96"
     aria = f' role="img" aria-label="{label}"' if label else ' aria-hidden="true"'
     return (f'<svg width="{w}" height="{h}" viewBox="{vb}" xmlns="http://www.w3.org/2000/svg"{aria} style="display: block; overflow: visible;">'
