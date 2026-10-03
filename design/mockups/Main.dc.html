@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pixel Frontier: the town</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=VT323&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#F2D06B}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; overflow: hidden; background: #1B1F2B; color: #F4ECD8; font-family: 'VT323', monospace; position: relative; display: flex; flex-direction: column;">
+
+  <div style="padding: 44px 14px 8px 14px; display: flex; flex-direction: column; gap: 8px; background: #1B1F2B; border-bottom: 4px solid #000;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Press Start 2P', monospace; font-size: 10px;">
+      <div style="color: #F2D06B;">HOUSE OF HOLLIS</div>
+      <div>SPRING 1867 · 5/20</div>
+    </div>
+    <div style="display: flex; gap: 14px; align-items: center; font-family: 'Press Start 2P', monospace; font-size: 10px;">
+      <div style="display: flex; align-items: center; gap: 6px;"><div style="width: 12px; height: 12px; background: #F2D06B; border: 2px solid #8A6417; border-radius: 50%;"></div>$41</div>
+      <div style="display: flex; align-items: center; gap: 6px; color: #FF8A75;">TAB $28</div>
+      <div style="display: flex; align-items: center; gap: 4px;">CELLAR
+        <div style="width: 10px; height: 12px; background: #C98A4A; border: 2px solid #000;"></div>
+        <div style="width: 10px; height: 12px; background: #C98A4A; border: 2px solid #000;"></div>
+        <div style="width: 10px; height: 12px; background: #2C3242; border: 2px solid #000;"></div>
+        <div style="width: 10px; height: 12px; background: #2C3242; border: 2px solid #000;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; width: 390px; height: 450px; display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); flex-shrink: 0;">
+    <sc-for list="{{tiles}}" as="t" hint-placeholder-count="195">
+      <div style="{{t.st}}"></div>
+    </sc-for>
+
+    <div style="position: absolute; left: 30px; top: 38px; font-family: 'Press Start 2P', monospace; font-size: 6px; background: #3A2A1A; color: #F4ECD8; padding: 2px 3px; border: 1px solid #000;">STORE</div>
+    <div style="position: absolute; left: 156px; top: 38px; font-family: 'Press Start 2P', monospace; font-size: 6px; background: #3A2A1A; color: #F4ECD8; padding: 2px 3px; border: 1px solid #000;">BANK</div>
+    <div style="position: absolute; left: 270px; top: 38px; font-family: 'Press Start 2P', monospace; font-size: 6px; background: #3A2A1A; color: #F4ECD8; padding: 2px 3px; border: 1px solid #000;">WIRE</div>
+    <div style="position: absolute; left: 92px; top: 158px; font-family: 'Press Start 2P', monospace; font-size: 6px; background: #3A2A1A; color: #F4ECD8; padding: 2px 3px; border: 1px solid #000;">SALOON</div>
+    <div style="position: absolute; left: 216px; top: 152px; font-family: 'Press Start 2P', monospace; font-size: 6px; background: #3A2A1A; color: #F4ECD8; padding: 2px 3px; border: 1px solid #000;">YARDS</div>
+
+    <div style="position: absolute; left: 34px; top: 92px; width: 22px; height: 28px;">
+      <div style="position: absolute; left: 3px; top: 0; width: 16px; height: 5px; background: #333;"></div>
+      <div style="position: absolute; left: 5px; top: 5px; width: 12px; height: 9px; background: #F0C8A0; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 14px; width: 16px; height: 13px; background: #F4ECD8; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 19px; width: 16px; height: 8px; background: #6B8F5E;"></div>
+    </div>
+    <div style="position: absolute; left: 30px; top: 58px; width: 28px; height: 28px; background: #fff; border: 3px solid #000; font-family: 'Press Start 2P', monospace; font-size: 14px; color: #B5483A; display: flex; align-items: center; justify-content: center;">!</div>
+
+    <div style="position: absolute; left: 70px; top: 96px; width: 22px; height: 28px;">
+      <div style="position: absolute; left: 2px; top: 0; width: 18px; height: 5px; background: #6B4A2A;"></div>
+      <div style="position: absolute; left: 5px; top: 5px; width: 12px; height: 9px; background: #F0C8A0; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 14px; width: 16px; height: 13px; background: #3E6FB5; border: 1px solid #000;"></div>
+    </div>
+
+    <div style="position: absolute; left: 124px; top: 216px; width: 22px; height: 28px;">
+      <div style="position: absolute; left: 4px; top: 0; width: 14px; height: 4px; background: #222;"></div>
+      <div style="position: absolute; left: 5px; top: 4px; width: 12px; height: 10px; background: #E8B890; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 14px; width: 16px; height: 13px; background: #2E2E3E; border: 1px solid #000;"></div>
+    </div>
+    <div style="position: absolute; left: 284px; top: 214px; width: 22px; height: 28px;">
+      <div style="position: absolute; left: 0; top: 0; width: 22px; height: 5px; background: #C9A66B;"></div>
+      <div style="position: absolute; left: 5px; top: 5px; width: 12px; height: 9px; background: #D9A07A; border: 1px solid #000;"></div>
+      <div style="position: absolute; left: 3px; top: 14px; width: 16px; height: 13px; background: #8A5A3A; border: 1px solid #000;"></div>
+    </div>
+    <div style="position: absolute; left: 300px; top: 336px; width: 30px; height: 18px; background: #F2A7A0; border: 2px solid #000; border-radius: 4px;"></div>
+  </div>
+
+  <div style="margin: 10px 12px 0 12px; background: #F4ECD8; color: #1B1F2B; border: 4px solid #000; box-shadow: inset 0 0 0 3px #8A6417; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start;">
+    <div style="width: 44px; height: 44px; flex-shrink: 0; background: #C98A4A; border: 3px solid #000; position: relative;">
+      <div style="position: absolute; left: 10px; top: 6px; width: 18px; height: 16px; background: #F0C8A0; border: 2px solid #000;"></div>
+      <div style="position: absolute; left: 6px; top: 24px; width: 26px; height: 12px; background: #F4ECD8; border: 2px solid #000;"></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <div style="font-family: 'Press Start 2P', monospace; font-size: 9px; color: #8A3A2A;">PRUITT, STOREKEEPER</div>
+      <div style="font-size: 21px; line-height: 1.05;">"Running low, Hollis? Take what you need. Pay me when the crop comes in."</div>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; justify-content: space-between; align-items: center; padding: 6px 26px 24px 26px;">
+    <div style="position: relative; width: 120px; height: 120px;">
+      <button aria-label="Up" style="position: absolute; left: 40px; top: 0; width: 40px; height: 40px; background: #3A3F52; border: 3px solid #000; border-radius: 4px; color: #F4ECD8; font-family: 'Press Start 2P', monospace; font-size: 10px;">▲</button>
+      <button aria-label="Left" style="position: absolute; left: 0; top: 40px; width: 40px; height: 40px; background: #3A3F52; border: 3px solid #000; border-radius: 4px; color: #F4ECD8; font-family: 'Press Start 2P', monospace; font-size: 10px;">◀</button>
+      <div style="position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; background: #3A3F52;"></div>
+      <button aria-label="Right" style="position: absolute; left: 80px; top: 40px; width: 40px; height: 40px; background: #3A3F52; border: 3px solid #000; border-radius: 4px; color: #F4ECD8; font-family: 'Press Start 2P', monospace; font-size: 10px;">▶</button>
+      <button aria-label="Down" style="position: absolute; left: 40px; top: 80px; width: 40px; height: 40px; background: #3A3F52; border: 3px solid #000; border-radius: 4px; color: #F4ECD8; font-family: 'Press Start 2P', monospace; font-size: 10px;">▼</button>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 12px;">
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <button style="width: 56px; height: 56px; border-radius: 50%; background: #3E6FB5; border: 3px solid #000; color: #fff; font-family: 'Press Start 2P', monospace; font-size: 14px;">B</button>
+          <div style="font-family: 'Press Start 2P', monospace; font-size: 7px;">LEDGER</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -24px;">
+          <button style="width: 64px; height: 64px; border-radius: 50%; background: #B5483A; border: 3px solid #000; color: #fff; font-family: 'Press Start 2P', monospace; font-size: 16px;">A</button>
+          <div style="font-family: 'Press Start 2P', monospace; font-size: 7px;">TALK</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button style="background: #2C3242; color: #F4ECD8; border: 2px solid #000; padding: 6px 8px; font-family: 'Press Start 2P', monospace; font-size: 7px;">JOURNAL</button>
+        <button style="background: #2C3242; color: #F4ECD8; border: 2px solid #000; padding: 6px 8px; font-family: 'Press Start 2P', monospace; font-size: 7px;">3 VISITS LEFT</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var rows = [
+      'TTTTTTTTTTTTT',
+      'TRRRgRRRgRRRT',
+      'TWDWgWDWgWDWT',
+      'gpppppppppppg',
+      'gpgggggggggpg',
+      'gpgRRRgfffgpg',
+      'gpgWDWgfgfgpg',
+      'gpppppppppppg',
+      'ggggpgggggggg',
+      'cccgpgggTgggg',
+      'cccgpggggggTg',
+      'cccgpgggggggg',
+      'wwwwbwwwwwwww',
+      'wwwwbwwwwwwww',
+      'ggggpgggTgggg'
+    ];
+    var S = {
+      T: 'background:#6BB04A; box-shadow: inset 0 0 0 4px #6BB04A, inset 0 0 0 30px #2F6B3A; border-radius: 0;',
+      g: 'background:#6BB04A; box-shadow: inset 6px 6px 0 -4px #7CC25A;',
+      p: 'background:#D9B77A; box-shadow: inset 0 -2px 0 #C9A260;',
+      R: 'background:#B5483A; box-shadow: inset 0 -6px 0 #7A2E24, inset 0 2px 0 #D86A55;',
+      W: 'background:#D9C29A; box-shadow: inset 0 0 0 2px #8A6A4A;',
+      D: 'background:#5A3A24; box-shadow: inset 0 0 0 3px #D9C29A;',
+      f: 'background:#6BB04A; box-shadow: inset 0 12px 0 -9px #8A5A3A, inset 0 -12px 0 -9px #8A5A3A;',
+      c: 'background:repeating-linear-gradient(90deg,#C9A24A 0 5px,#8A6A2A 5px 7px);',
+      w: 'background:#3E7FC1; box-shadow: inset 8px 10px 0 -7px #7FB2E2;',
+      b: 'background:repeating-linear-gradient(0deg,#9C6B3E 0 5px,#6B4423 5px 6px);'
+    };
+    var tiles = [];
+    rows.forEach(function (r) { for (var i = 0; i < r.length; i++) tiles.push({ st: 'height:30px;' + S[r[i]] }); });
+    return { tiles: tiles };
+  }
+}
+</script>
+</body>
+</html>
