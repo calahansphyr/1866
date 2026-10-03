@@ -346,6 +346,7 @@ function leaveRoom() {
 }
 
 function talk(id) {
+  if (id === 'pruitt') shopTab = S.season === 'harvest' && S.grain > 0 ? 'sell' : 'buy';
   ({ ruth: openRuth, pruitt: openStore, cole: openBank, clerk: openWire, brandt: openBrandt, ames: openAmes, drummer: openDrummer, foreman: openForeman, folk1: folk, folk2: folk, folk3: folk, folk4: folk }[id] || folk)(id);
 }
 
@@ -419,7 +420,7 @@ function look(id) {
       unlock('interest');
     } else say(`Ruth's calendar for ${S.year}. The margin is blank. There is nothing on the book to add up.`);
   } else if (id === 'jars') {
-    sheet(`<div class="h">The cellar shelf</div><div class="say">${S.jars} jar${S.jars === 1 ? '' : 's'} put up, about ${money(S.jars * K.jarValue)} of winter food. An ordinary winter takes ${money(K.winter)} of food and fuel. A hard one takes ${money(K.hardWinter)}.</div>${leave('Back')}`);
+    sheet(`<div class="h">The cellar shelf</div><div class="say">${S.jars} jar${S.jars === 1 ? '' : 's'} put up. Each one feeds the family about a week. An ordinary winter is ${K.winter / K.jarValue} weeks before anything grows; a hard one is ${K.hardWinter / K.jarValue}.</div>${leave('Back')}`);
     unlock('buffer');
   } else if (id === 'almanac') handlers.almanac();
   else if (id === 'bed') openBed();
@@ -560,40 +561,58 @@ handlers.cut = (how) => {
 
 // ------------------------------------------------------------------ Pruitt's store
 
-function openStore() {
-  const bits = [];
-  const extra = S.acres - S.seedFor;
-  if (S.season === 'spring') {
-    const cost = extra * K.seed;
-    const said = S.tab > 1 ? `"Your family's on my slate for ${money(S.tab)}. Seed's ${cents(K.seed)} an acre. Pay me now or I'll write it down, no trouble at all."` : `"Seed wheat's ${cents(K.seed)} an acre. Cash, or I'll put it on the book. No trouble at all."`;
-    bits.push(speak('pruitt', said));
-    if (extra > 0) {
-      bits.push(`<div class="choices">
-        ${choice('seed:cash', `Seed for ${extra} acre${extra === 1 ? '' : 's'}, pay cash`, money(cost), S.cash < cost)}
-        ${choice('seed:book', `Seed for ${extra} acre${extra === 1 ? '' : 's'}, put it on the book`, money(cost))}
-      </div>`);
-    } else bits.push(`<div class="note">You have seed for all ${S.acres} acres.</div>`);
-    const tools = [];
-    if (!S.plow) tools.push(choice('plow', 'A steel plow. Breaks sod a third faster', money(20), S.cash < 20));
-    if (!S.reaper && S.year >= 1868) tools.push(choice('reaper', 'A McCormick reaper. Cuts wheat in less than half the time', money(K.reaperCash), S.cash < K.reaperCash));
-    if (tools.length) bits.push(`<div class="choices">${tools.join('')}</div><div class="note">Pruitt doesn't sell tools on the book.</div>`);
-  } else {
-    const p = pruittPays();
-    const said = S.grain > 0 ? (S.wired ? `"Chicago's at ${cents(chicago())}, you say? Well. I can do ${cents(p)} a bushel."` : `"Wheat's soft this year. ${cents(p)} a bushel is a fair price, I'd say."`) : '"Nothing to sell yet? Then let me show you the preserves."';
-    bits.push(speak('pruitt', said));
-    const c = [];
-    if (S.grain > 0) {
-      c.push(choice('sell', `Sell all ${Math.round(S.grain)} bushels`, `${cents(p)}/bu`));
-      c.push('<div class="note">Or keep it in the crib and sell in the spring. It might fetch more, or less, and some spoils.</div>');
-    }
-    c.push(choice('jar:1', `Put up a jar for winter, worth ${money(K.jarValue)} of food`, money(K.jarCost), S.jars >= K.maxJars || S.cash < K.jarCost));
-    c.push(choice('jar:5', 'Put up five jars', money(K.jarCost * 5), S.jars + 5 > K.maxJars || S.cash < K.jarCost * 5));
-    bits.push(`<div class="choices">${c.join('')}</div>`);
+// A shop like any other: buy, sell or settle the book, any season. Pruitt's
+// talk carries the season's advice; the shelves don't change with it.
+let shopTab = 'buy';
+function pruittSays() {
+  const sp = S.season === 'spring';
+  const winterWeeks = K.winter / K.jarValue, hardWeeks = K.hardWinter / K.jarValue;
+  if (shopTab === 'sell') {
+    if (!S.grain) return '"Nothing to sell me yet. Bring your wheat in once it\'s cut and threshed."';
+    return S.wired ? `"Chicago's at ${cents(chicago())}, you say? Well. I can do ${cents(pruittPays())} a bushel."` : `"Wheat's soft this year. ${cents(pruittPays())} a bushel is a fair price, I'd say."`;
   }
-  if (S.tab > 0.5) bits.push(`<div class="choices">${choice('paytab', `Pay down the book (${money(S.tab)})`, money(Math.min(S.cash, S.tab)), S.cash < 1)}</div>`);
-  if (S.season === 'spring' && S.grain > 0) bits.push(`<div class="choices">${choice('sell', `Sell the ${Math.round(S.grain)} bushels you held over winter`, `${cents(pruittPays())}/bu`)}</div>`);
-  sheet(bits.join('') + `<div class="timecost">Each piece of business takes about ${hours(TIME.shop)}.</div>` + leave('Step away from the counter'));
+  if (shopTab === 'book') return S.tab > 0.5 ? `"Your family's down for ${money(S.tab)}. I add three percent a month, same as everybody. Pay what you like, when you like."` : '"Your page is clean. Not many families can say that."';
+  if (sp) {
+    const need = S.acres - S.seedFor;
+    if (need > 0) return `"Seed wheat's ${cents(K.seed)} an acre. You've ${S.acres} acres broken, so that's ${money(need * K.seed)} for the lot. Cash, or I'll put it on the book."`;
+    if (!S.plow) return '"Seed\'s in the ground? Then have a look at that steel plow. Prairie sod won\'t stick to it."';
+    return '"Anything else today? Mrs. Pruitt\'s preserves come in at harvest. Folks who wait too long find the shelf bare."';
+  }
+  if (S.jars * K.jarValue < K.hardWinter) return `"Winter's coming. One jar of Mrs. Pruitt's preserves feeds a family of four about a week. An ordinary winter is ${winterWeeks} weeks before anything grows. A bad one is ${hardWeeks}. You've got ${S.jars} put up."`;
+  return '"Your cellar\'s fuller than most. That\'s a family that sleeps easy in February."';
 }
+function ware(name, desc, price, buttons) {
+  return `<div class="ware"><div class="wt"><div class="wn">${name}<span class="wp">${price}</span></div><div class="wd">${desc}</div></div><div class="wb">${buttons.join('')}</div></div>`;
+}
+const btn = (act, label, disabled) => `<button class="buy" data-act="${act}" ${disabled ? 'disabled' : ''}>${label}</button>`;
+function openStore() {
+  const sp = S.season === 'spring';
+  const tabs = ['buy', 'sell', 'book'].map((t) => `<button class="tab" data-act="shop:${t}" aria-pressed="${shopTab === t}">${{ buy: 'Buy', sell: 'Sell', book: "Pruitt's book" }[t]}</button>`).join('');
+  let body = '';
+  if (shopTab === 'buy') {
+    const n = Math.max(0, S.acres - S.seedFor), cost = n * K.seed;
+    const w = [];
+    if (sp) w.push(ware('Seed wheat', n ? `For ${n} acre${n === 1 ? '' : 's'}. One acre of broken sod takes one acre of seed.` : `You have seed for all ${S.acres} acres.`, `${cents(K.seed)} an acre`,
+      n ? [btn('seed:cash', `Pay ${money(cost)}`, S.cash < cost), btn('seed:book', 'On the book')] : []));
+    else w.push(ware('Seed wheat', 'Sold out. The seed wagon comes up from Kansas City in March.', '—', []));
+    if (!sp) w.push(ware('Preserves', `Put up this fall. A jar feeds a family of four about a week. Cash only. ${S.jars} in your cellar.`, `${money(K.jarCost)} a jar`,
+      [btn('jar:1', 'Buy 1', S.jars >= K.maxJars || S.cash < K.jarCost), btn('jar:5', 'Buy 5', S.jars + 5 > K.maxJars || S.cash < K.jarCost * 5)]));
+    else w.push(ware('Preserves', 'Last fall\'s are gone. Mrs. Pruitt puts up new ones at harvest time.', '—', []));
+    w.push(ware('Steel plow', S.plow ? 'Yours is out on the claim.' : 'Breaks prairie sod about a third faster than an iron plow. Cash only.', money(20), S.plow ? [] : [btn('plow', 'Buy', S.cash < 20)]));
+    if (S.year >= 1868) w.push(ware('McCormick reaper', S.reaper ? 'Yours is out on the claim.' : 'Cuts wheat in less than half the time a cradle takes. Cash only.', money(K.reaperCash), S.reaper ? [] : [btn('reaper', 'Buy', S.cash < K.reaperCash)]));
+    body = w.join('');
+  } else if (shopTab === 'sell') {
+    body = S.grain > 0 ? ware('Wheat', `${Math.round(S.grain)} bushels in your crib. Keep it to sell later and it might fetch more, or less, and some spoils.`, `${cents(pruittPays())} a bushel`, [btn('sell', `Sell all for ${money(S.grain * pruittPays())}`)])
+      : '<div class="note">You have nothing Pruitt buys right now. He buys wheat.</div>';
+  } else {
+    body = ware('What you owe', S.tab > 0.5 ? 'Three percent is added every month it stands.' : 'Nothing owing.', money(S.tab),
+      S.tab > 0.5 ? [btn('paytab', `Pay ${money(Math.min(S.cash, S.tab))}`, S.cash < 1), btn('look:book', 'Read the page')] : [btn('look:book', 'Read the page')]);
+  }
+  sheet(`${speak('pruitt', pruittSays())}<div class="tabs" role="tablist">${tabs}</div><div class="wares">${body}</div>
+    <div class="timecost">Each purchase or sale takes about ${hours(TIME.shop)}. You have ${money(S.cash)}.</div>${leave('Step away from the counter')}`);
+}
+handlers.shop = (t) => { shopTab = t; openStore(); };
+handlers.look = (id) => { onClose = () => openStore(); look(id); };
 handlers.seed = (how) => {
   const n = S.acres - S.seedFor, cost = n * K.seed;
   const hadCash = S.cash >= cost;
@@ -1299,7 +1318,7 @@ engine = createEngine($('#scene'), {
   roomState: () => (S ? {
     jars: S.jars, tab: S.tab, family: S.look.family, plow: S.plow, reaper: S.reaper, year: S.year, minute: S.minute, bookLog: S.bookLog,
     wired: S.wired, bankClosed: S.bankClosed, boardPrice: S.wired ? `WHEAT  ${cents(chicago())}` : '', boardNote: S.wired ? `${seasonName()} ${S.year}` : '',
-    prices: { seed: cents(K.seed), plow: `${money(20)} CASH`, reaper: `${money(K.reaperCash)} CASH`, jar: `${money(K.jarCost)} A JAR` },
+    prices: { seed: cents(K.seed), plow: `${money(20)} CASH`, reaper: `${money(K.reaperCash)} CASH`, jar: S.season === 'spring' ? 'IN THE FALL' : `${money(K.jarCost)} A JAR` },
   } : {}),
 });
 engine.enable(false);
