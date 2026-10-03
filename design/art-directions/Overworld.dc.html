@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>1866 — overworld</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=VT323&family=Outfit:wght@400;500&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>html, body { margin: 0; background: #16130f; } x-dc { display: block; }</style>
+</helmet>
+<div class="phone">
+  <header class="hud">
+    <div class="hud-top">
+      <span>Hollis</span>
+      <span id="when">Spring 1867</span>
+    </div>
+    <div class="hud-bot">
+      <span id="cash">$41.50</span>
+      <span id="tab">Tab $28</span>
+      <span class="pips" id="pips" aria-label="Visits left"></span>
+    </div>
+  </header>
+
+  <div class="bezel">
+    <canvas id="game" width="160" height="240"></canvas>
+    <div class="fade" id="fade"></div>
+    <div class="box" id="box" hidden>
+      <div class="who" id="who"></div>
+      <p id="line"></p>
+      <div class="choices" id="choices"></div>
+      <i class="next" id="caret" aria-hidden="true"></i>
+    </div>
+    <p class="toast" id="toast" hidden></p>
+  </div>
+
+  <div class="controls">
+    <div class="dpad" id="dpad">
+      <button type="button" data-k="up" aria-label="North"></button>
+      <button type="button" data-k="left" aria-label="West"></button>
+      <button type="button" data-k="down" aria-label="South"></button>
+      <button type="button" data-k="right" aria-label="East"></button>
+    </div>
+    <button type="button" class="a" id="act" aria-label="Speak">A</button>
+  </div>
+  <p class="hint">Arrows or the pad to walk. A to speak and to use a door.</p>
+</div>
+</x-dc>
+
+<script>
+(function () {
+  var TILE = 16;
+  var VIEW_W = 10;
+  var VIEW_H = 15;
+  var SPEED = 46;
+
+  var worldRows = [
+    "wwwwwwwwwwwwwwwwwwwwwwww",
+    "wwwwwwwwwwwwwwwwwwwwwwww",
+    "........................",
+    ",,................,,,,..",
+    "..LLLLL..SSSSSS..AAAAA..",
+    "..LLLLL..SSSSSS..AAAAA..",
+    "..LLLlL..SSSSsS..AAAAAA.",
+    "rrrrrrrrrrrrrrrrrrrrrrrr",
+    "rrrrrrrrrrrrrrrrrrrrrrrr",
+    "..TTTT....BBBB...YYYYYy.",
+    "..TTTT....BBBB...Y.....Y",
+    "..TTTT....BBBB...Y.....Y",
+    "..TTTT....BBBB...YYYYYY.",
+    "........................",
+    "........rr.........XXXX.",
+    "........rr..............",
+    "........rr..............",
+    "..HHHH..rr..............",
+    "..HHHH..rr..oooo........",
+    "..HHHH..rr..oooo..cccccc",
+    "..HhHH..rr..............",
+    "...rrrrrrr..............",
+    "........................",
+    "..####............####..",
+    "........................"
+  ];
+
+  var houseRows = [
+    "############",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#####h######"
+  ];
+  var landRows = [
+    "############",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#####l######"
+  ];
+  var storeRows = [
+    "############",
+    "#kk......kk#",
+    "#..........#",
+    "#..........#",
+    "#..........#",
+    "#####s######"
+  ];
+  var yardRows = [
+    "#####y######",
+    "#..........#",
+    "#..........#",
+    "#..oooo....#",
+    "#..........#",
+    "############"
+  ];
+
+  var SOLID = { w: 1, "#": 1, L: 1, S: 1, A: 1, T: 1, B: 1, Y: 1, H: 1, o: 1, k: 1 };
+  var DOORS = { l: "land", s: "store", y: "yard", h: "house" };
+
+  function findChar(rows, ch) {
+    for (var y = 0; y < rows.length; y++) {
+      var x = rows[y].indexOf(ch);
+      if (x >= 0) return { x: x, y: y };
+    }
+    return null;
+  }
+
+  function mapFrom(rows, ground) {
+    var w = 0;
+    for (var i = 0; i < rows.length; i++) w = Math.max(w, rows[i].length);
+    rows = rows.map(function (r) { return r.padEnd(w, "."); });
+    return { rows: rows, w: w, h: rows.length, ground: ground };
+  }
+
+  var maps = {
+    world: mapFrom(worldRows, "grass"),
+    house: mapFrom(houseRows, "wood"),
+    land: mapFrom(landRows, "wood"),
+    store: mapFrom(storeRows, "wood"),
+    yard: mapFrom(yardRows, "dirt")
+  };
+
+  var houseDoor = findChar(worldRows, "h");
+  var storeDoor = findChar(worldRows, "s");
+  var yardDoor = findChar(worldRows, "y");
+  var landDoor = findChar(worldRows, "l");
+
+  var npcs = [
+    { map: "world", tx: 1, ty: 7, name: "Ada", hat: "#6e3a3a", coat: "#6e3a3a", skin: "#e2b48a", face: "down", talk: talkAda },
+    { map: "world", tx: 19, ty: 7, name: "Ike", hat: "#2a2118", coat: "#4a3728", skin: "#c49870", face: "up", talk: talkIke },
+    { map: "world", tx: 12, ty: 8, name: "Clerk", hat: "#1a1612", coat: "#2c3338", skin: "#e2b48a", face: "up", talk: talkClerk },
+    { map: "land", tx: 5, ty: 2, name: "Registrar", hat: "#1a1612", coat: "#3d4a38", skin: "#e2b48a", face: "down", talk: talkRegistrar },
+    { map: "store", tx: 5, ty: 2, name: "Pruitt", hat: "#e7dcc4", coat: "#8d5a3a", skin: "#e2b48a", face: "down", talk: talkPruitt },
+    { map: "yard", tx: 8, ty: 2, name: "McCoy", hat: "#2a2118", coat: "#1f6b45", skin: "#c49870", face: "down", talk: talkMcCoy }
+  ];
+
+  var signs = [
+    { map: "world", tx: 4, ty: 8, name: "Notice", lines: ["The wire is a dollar.", "The office is dark today."] },
+    { map: "world", tx: 20, ty: 14, name: "Stake", lines: ["Fresh paint on a stake.", "K.P.R.R. The grade runs east of the pens."] },
+    { map: "house", tx: 6, ty: 2, name: "Weekly", lines: ["Topeka Weekly. Six days on the road.", "McCoy bought the lumber in Abilene. He is raising pens. Forty dollars for hay.", "Gold premium, 138."] }
+  ];
+
+  var state = {
+    map: "world",
+    x: houseDoor.x * TILE + 2,
+    y: (houseDoor.y + 1) * TILE,
+    face: "up",
+    cash: 41.5,
+    tab: 28,
+    visits: 3,
+    been: {},
+    seed: false,
+    hay: null,
+    moving: false,
+    frame: 0,
+    lock: 0
+  };
+
+  var keys = { up: false, down: false, left: false, right: false };
+  var dialogue = null;
+  var choice = 0;
+  var last = 0;
+  var toastTimer = 0;
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  var box = document.getElementById("box");
+  var whoEl = document.getElementById("who");
+  var lineEl = document.getElementById("line");
+  var choicesEl = document.getElementById("choices");
+  var caret = document.getElementById("caret");
+  var fade = document.getElementById("fade");
+
+  function money(n) {
+    return "$" + n.toFixed(2);
+  }
+
+  function hud() {
+    document.getElementById("cash").textContent = money(state.cash);
+    document.getElementById("tab").textContent = "Tab " + money(state.tab).slice(1);
+    var pips = document.getElementById("pips");
+    pips.innerHTML = "";
+    for (var i = 0; i < 3; i++) {
+      var dot = document.createElement("i");
+      if (i >= state.visits) dot.className = "spent";
+      pips.appendChild(dot);
+    }
+  }
+
+  function toast(text) {
+    var el = document.getElementById("toast");
+    el.hidden = false;
+    el.textContent = text;
+    toastTimer = 1.6;
+  }
+
+  function hash(x, y) {
+    return ((x * 374761393 + y * 668265263) >>> 0) % 1000;
+  }
+
+  function tileAt(rows, x, y) {
+    if (y < 0 || x < 0 || y >= rows.length || x >= rows[0].length) return "#";
+    return rows[y][x];
+  }
+
+  function solidChar(ch) {
+    return !!SOLID[ch];
+  }
+
+  function feetOk(map, nx, ny) {
+    var pts = [[nx + 4, ny + 8], [nx + 11, ny + 8], [nx + 4, ny + 14], [nx + 11, ny + 14]];
+    for (var i = 0; i < pts.length; i++) {
+      var tx = Math.floor(pts[i][0] / TILE);
+      var ty = Math.floor(pts[i][1] / TILE);
+      if (solidChar(tileAt(map.rows, tx, ty))) return false;
+    }
+    var list = npcs.filter(function (n) { return n.map === state.map; });
+    for (var j = 0; j < list.length; j++) {
+      var nx0 = list[j].tx * TILE;
+      var ny0 = list[j].ty * TILE;
+      if (Math.abs(nx + 8 - (nx0 + 8)) < 12 && Math.abs(ny + 10 - (ny0 + 10)) < 12) return false;
+    }
+    return true;
+  }
+
+  function drawTile(ch, sx, sy, tx, ty, ground) {
+    var h = hash(tx, ty);
+    if (ground === "wood") {
+      ctx.fillStyle = h % 2 ? "#6b5344" : "#624c3e";
+      ctx.fillRect(sx, sy, 16, 16);
+      ctx.fillStyle = "#4a382c";
+      ctx.fillRect(sx, sy + 15, 16, 1);
+      return;
+    }
+    if (ground === "dirt" && (ch === "." || ch === "r")) {
+      ctx.fillStyle = h % 3 === 0 ? "#b8956a" : "#c4a36a";
+      ctx.fillRect(sx, sy, 16, 16);
+      return;
+    }
+    if (ch === "w") {
+      ctx.fillStyle = h % 2 ? "#2f4d5c" : "#3d5c6e";
+      ctx.fillRect(sx, sy, 16, 16);
+      ctx.fillStyle = "#7ea0b0";
+      ctx.fillRect(sx + (h % 8), sy + 6, 4, 1);
+      return;
+    }
+    ctx.fillStyle = h % 5 === 0 ? "#356332" : "#3f6b38";
+    ctx.fillRect(sx, sy, 16, 16);
+    if (ch === "," || h % 7 === 0) {
+      ctx.fillStyle = "#2a4e28";
+      ctx.fillRect(sx + 4, sy + 8, 2, 4);
+      ctx.fillRect(sx + 10, sy + 6, 2, 5);
+    }
+    if (ch === "r") {
+      ctx.fillStyle = "#c4a36a";
+      ctx.fillRect(sx, sy, 16, 16);
+      ctx.fillStyle = "#a8844e";
+      ctx.fillRect(sx, sy + 14, 16, 2);
+      if (h % 4 === 0) ctx.fillRect(sx + 6, sy + 6, 2, 2);
+      return;
+    }
+    if (ch === "c") {
+      ctx.fillStyle = "#c4a15a";
+      ctx.fillRect(sx + 3, sy + 4, 2, 8);
+      ctx.fillRect(sx + 8, sy + 3, 2, 9);
+      ctx.fillRect(sx + 12, sy + 5, 2, 7);
+      return;
+    }
+    if (ch === "X") {
+      ctx.fillStyle = "#e7dcc4";
+      ctx.fillRect(sx + 7, sy + 2, 2, 12);
+      ctx.fillStyle = "#8d3a32";
+      ctx.fillRect(sx + 4, sy + 3, 8, 3);
+      return;
+    }
+    if (ch === "o") {
+      ctx.fillStyle = "#e0bc6a";
+      ctx.beginPath();
+      ctx.ellipse(sx + 8, sy + 10, 6, 4, 0, 0, 6.28);
+      ctx.fill();
+      ctx.fillStyle = "#c4a15a";
+      ctx.beginPath();
+      ctx.ellipse(sx + 8, sy + 7, 4, 3, 0, 0, 6.28);
+      ctx.fill();
+      return;
+    }
+    var roofs = { L: "#6e6248", S: "#8d5a3a", A: "#5c2428", T: "#4a5560", B: "#9aa0a4", Y: "#c4a36a", H: "#6b4a32", k: "#4a382c", "#": "#3e4a2e" };
+    if (roofs[ch]) {
+      if (ch === "Y" || ch === "#") {
+        ctx.fillStyle = "#c4a36a";
+        ctx.fillRect(sx + 2, sy, 3, 16);
+        ctx.fillRect(sx + 11, sy, 3, 16);
+        ctx.fillRect(sx, sy + 6, 16, 3);
+        return;
+      }
+      if (ch === "k") {
+        ctx.fillStyle = "#4a382c";
+        ctx.fillRect(sx, sy + 4, 16, 10);
+        ctx.fillStyle = "#6b5344";
+        ctx.fillRect(sx, sy + 4, 16, 3);
+        return;
+      }
+      ctx.fillStyle = roofs[ch];
+      ctx.fillRect(sx, sy, 16, 16);
+      ctx.fillStyle = "rgba(0,0,0,.28)";
+      ctx.fillRect(sx, sy + 13, 16, 3);
+      if (ch === "S" && h % 2 === 0) {
+        ctx.fillStyle = "#e7dcc4";
+        ctx.fillRect(sx + 5, sy + 5, 6, 5);
+      }
+      if (ch === "T") {
+        ctx.fillStyle = "#1a1612";
+        ctx.fillRect(sx + 12, sy - 6, 2, 10);
+      }
+      return;
+    }
+    if (ch === "l" || ch === "s" || ch === "y" || ch === "h") {
+      ctx.fillStyle = "#2a2118";
+      ctx.fillRect(sx, sy, 16, 16);
+      ctx.fillStyle = "#c4a15a";
+      ctx.fillRect(sx + 12, sy + 8, 2, 2);
+    }
+  }
+
+  function drawPerson(x, y, colors, face, frame) {
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.fillRect(x + 3, y + 13, 10, 3);
+    ctx.fillStyle = "#1a120c";
+    ctx.fillRect(x + 2, y + 1, 12, 14);
+    ctx.fillStyle = colors.hat;
+    ctx.fillRect(x + 3, y + 2, 10, 3);
+    if (face !== "up") {
+      ctx.fillStyle = colors.skin;
+      ctx.fillRect(x + 5, y + 5, 6, 3);
+    } else {
+      ctx.fillRect(x + 4, y + 1, 8, 2);
+    }
+    ctx.fillStyle = colors.coat;
+    ctx.fillRect(x + 4, y + 8, 8, 5);
+    ctx.fillStyle = "#1a120c";
+    var step = frame ? 1 : 0;
+    ctx.fillRect(x + 4, y + 13, 3, 2);
+    ctx.fillRect(x + 9 + (face === "left" ? -step : step), y + 13, 3, 2);
+  }
+
+  function render() {
+    var map = maps[state.map];
+    var vw = VIEW_W * TILE;
+    var vh = VIEW_H * TILE;
+    var mw = map.w * TILE;
+    var mh = map.h * TILE;
+    var camX = state.x + 8 - vw / 2;
+    var camY = state.y + 8 - vh / 2;
+    if (mw <= vw) camX = (mw - vw) / 2;
+    else camX = Math.max(0, Math.min(mw - vw, camX));
+    if (mh <= vh) camY = (mh - vh) / 2;
+    else camY = Math.max(0, Math.min(mh - vh, camY));
+
+    ctx.fillStyle = "#16130f";
+    ctx.fillRect(0, 0, vw, vh);
+
+    var x0 = Math.floor(camX / TILE) - 1;
+    var y0 = Math.floor(camY / TILE) - 1;
+    var x1 = x0 + VIEW_W + 3;
+    var y1 = y0 + VIEW_H + 3;
+    for (var ty = y0; ty <= y1; ty++) {
+      for (var tx = x0; tx <= x1; tx++) {
+        if (ty < 0 || tx < 0 || ty >= map.h || tx >= map.w) {
+          ctx.fillStyle = "#16130f";
+          ctx.fillRect(Math.round(tx * TILE - camX), Math.round(ty * TILE - camY), 16, 16);
+          continue;
+        }
+        var ch = tileAt(map.rows, tx, ty);
+        drawTile(ch, Math.round(tx * TILE - camX), Math.round(ty * TILE - camY), tx, ty, map.ground);
+      }
+    }
+
+    var sprites = npcs.filter(function (n) { return n.map === state.map; }).map(function (n) {
+      return { y: n.ty * TILE, draw: function () { drawPerson(Math.round(n.tx * TILE - camX), Math.round(n.ty * TILE - camY + (state.frame ? 0 : 0)), n, n.face, 0); } };
+    });
+    sprites.push({
+      y: state.y,
+      draw: function () {
+        drawPerson(Math.round(state.x - camX), Math.round(state.y - camY), { hat: "#2a2118", coat: "#243044", skin: "#e2b48a" }, state.face, state.moving ? state.frame : 0);
+      }
+    });
+    sprites.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 0; i < sprites.length; i++) sprites[i].draw();
+  }
+
+  function say(name, lines, then) {
+    dialogue = { name: name, lines: lines, i: 0, choices: null, then: then || null };
+    choice = 0;
+    showBox();
+  }
+
+  function choose(name, prompt, options) {
+    dialogue = { name: name, lines: [prompt], i: 0, choices: options, then: null };
+    choice = 0;
+    showBox();
+  }
+
+  function showBox() {
+    box.hidden = false;
+    whoEl.textContent = dialogue.name;
+    lineEl.textContent = dialogue.lines[dialogue.i];
+    choicesEl.innerHTML = "";
+    var showChoices = dialogue.choices && dialogue.i === dialogue.lines.length - 1;
+    caret.hidden = !!showChoices;
+    if (!showChoices) return;
+    dialogue.choices.forEach(function (opt, idx) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = opt.label;
+      if (idx === choice) b.className = "on";
+      b.addEventListener("click", function () {
+        choice = idx;
+        confirmChoice();
+      });
+      choicesEl.appendChild(b);
+    });
+  }
+
+  function closeBox() {
+    var then = dialogue && dialogue.then;
+    dialogue = null;
+    box.hidden = true;
+    if (then) then();
+  }
+
+  function advance() {
+    if (!dialogue) return interact();
+    if (dialogue.choices && dialogue.i === dialogue.lines.length - 1) {
+      confirmChoice();
+      return;
+    }
+    if (dialogue.i < dialogue.lines.length - 1) {
+      dialogue.i++;
+      showBox();
+      return;
+    }
+    closeBox();
+  }
+
+  function confirmChoice() {
+    var opt = dialogue.choices[choice];
+    dialogue = null;
+    box.hidden = true;
+    opt.run();
+  }
+
+  function moveChoice(dir) {
+    if (!dialogue || !dialogue.choices) return;
+    choice = (choice + dir + dialogue.choices.length) % dialogue.choices.length;
+    showBox();
+  }
+
+  function spend(kind) {
+    if (state.been[kind]) return true;
+    if (state.visits <= 0) {
+      say("The week", ["Three trips already. The rest of the town will keep."]);
+      return false;
+    }
+    state.been[kind] = true;
+    state.visits -= 1;
+    hud();
+    toast("A visit.");
+    return true;
+  }
+
+  function talkAda() {
+    say("Ada", [
+      "Church this morning. Texas cattle, four dollars a head — if the herds come.",
+      "Barn raising Saturday. I could use your back. The Lord notices. So do I."
+    ]);
+  }
+
+  function talkIke() {
+    say("Ike", [
+      "Saloon's shut. Fiddler broke a string.",
+      "News in here is louder than the paper, and a day staler."
+    ]);
+  }
+
+  function talkClerk() {
+    say("Clerk", [
+      "He looks at a ledger, then at you.",
+      "Not with " + money(state.tab) + " on that store tab. I don't lend to a man the store already owns."
+    ]);
+  }
+
+  function talkRegistrar() {
+    say("Registrar", [
+      "Five years on the claim, living on it. That is the clock.",
+      "Commuting out is two hundred dollars. You are not carrying that."
+    ]);
+  }
+
+  function talkPruitt() {
+    if (state.seed) {
+      say("Pruitt", ["You have seed enough for this season."]);
+      return;
+    }
+    say("Pruitt", ["Seed is four dollars. Cash, or the tab. The tab is three percent every month."], function () {
+      choose("Pruitt", "How will you pay?", [
+        { label: "Pay $4", run: function () {
+          if (state.cash < 4) { say("Pruitt", ["You don't have the four."]); return; }
+          state.cash -= 4;
+          state.seed = true;
+          hud();
+          say("Pruitt", ["Cash. I don't see much of it."]);
+        }},
+        { label: "On the tab", run: function () {
+          state.tab += 4;
+          state.seed = true;
+          hud();
+          say("Pruitt", ["On the tab. I add the three percent the first of the month."]);
+        }},
+        { label: "No seed", run: function () { say("Pruitt", ["Suit yourself."]); } }
+      ]);
+    });
+  }
+
+  function talkMcCoy() {
+    if (state.hay === "half") { say("McCoy", ["Half was the deal. The rest of the stack is yours."]); return; }
+    if (state.hay === "all") { say("McCoy", ["The boy is coming for the rest of it."]); return; }
+    say("McCoy", ["Pens are up. I need hay.", "Forty dollars for the stack. Twenty for half."], function () {
+      choose("McCoy", "He waits.", [
+        { label: "Half, for $20", run: function () {
+          state.cash += 20;
+          state.hay = "half";
+          hud();
+          say("McCoy", ["Half, then. I'll send a boy."]);
+        }},
+        { label: "All, for $40", run: function () {
+          state.cash += 40;
+          state.hay = "all";
+          hud();
+          say("McCoy", ["All of it. I'll send a boy before dark."]);
+        }},
+        { label: "Not today", run: function () { say("McCoy", ["The pens will still be here."]); } }
+      ]);
+    });
+  }
+
+  function facingTile() {
+    var dx = state.face === "left" ? -1 : state.face === "right" ? 1 : 0;
+    var dy = state.face === "up" ? -1 : state.face === "down" ? 1 : 0;
+    var tx = Math.floor((state.x + 8 + dx * 12) / TILE);
+    var ty = Math.floor((state.y + 12 + dy * 12) / TILE);
+    return { x: tx, y: ty };
+  }
+
+  function interact() {
+    var f = facingTile();
+    var near = npcs.filter(function (n) { return n.map === state.map; });
+    for (var i = 0; i < near.length; i++) {
+      if (Math.abs(near[i].tx - f.x) <= 0 && Math.abs(near[i].ty - f.y) <= 0) {
+        near[i].talk();
+        return;
+      }
+      if (Math.abs(near[i].tx * TILE + 8 - (state.x + 8)) < 18 && Math.abs(near[i].ty * TILE + 8 - (state.y + 10)) < 18) {
+        near[i].talk();
+        return;
+      }
+    }
+    for (var s = 0; s < signs.length; s++) {
+      if (signs[s].map === state.map && signs[s].tx === f.x && signs[s].ty === f.y) {
+        say(signs[s].name, signs[s].lines);
+        return;
+      }
+    }
+    var map = maps[state.map];
+    var ch = tileAt(map.rows, f.x, f.y);
+    if (DOORS[ch]) tryDoor(ch);
+  }
+
+  function tryDoor(ch) {
+    var dest = DOORS[ch];
+    var paid = dest === "store" || dest === "yard" || dest === "land";
+    if (paid && !state.been[dest] && state.visits <= 0) {
+      say("The week", ["Three trips already. Home is still open."]);
+      return;
+    }
+    if (paid && !spend(dest)) return;
+    var inward = dest === "yard" ? "down" : "up";
+    go(dest, ch, inward);
+  }
+
+  function go(dest, doorChar, face) {
+    fade.classList.add("on");
+    state.lock = 0.35;
+    setTimeout(function () {
+      var destMap = maps[dest];
+      var door = findChar(destMap.rows, doorChar);
+      state.map = dest;
+      state.face = face;
+      var nx = door.x * TILE + 2;
+      var ny = door.y * TILE;
+      if (face === "up") ny -= TILE;
+      if (face === "down") ny += TILE;
+      state.x = nx;
+      state.y = ny;
+      fade.classList.remove("on");
+    }, 180);
+  }
+
+  function leaveThrough(ch) {
+    var back = findChar(maps.world.rows, ch);
+    var face = ch === "y" ? "up" : "down";
+    fade.classList.add("on");
+    state.lock = 0.35;
+    setTimeout(function () {
+      state.map = "world";
+      state.face = face;
+      state.x = back.x * TILE + 2;
+      state.y = back.y * TILE + (face === "down" ? TILE : -TILE);
+      fade.classList.remove("on");
+    }, 180);
+  }
+
+  function stepDoor() {
+    if (state.lock > 0 || dialogue) return;
+    var map = maps[state.map];
+    var tx = Math.floor((state.x + 8) / TILE);
+    var ty = Math.floor((state.y + 12) / TILE);
+    var ch = tileAt(map.rows, tx, ty);
+    if (state.map !== "world" && DOORS[ch]) {
+      leaveThrough(ch);
+      return;
+    }
+    if (state.map === "world" && DOORS[ch]) tryDoor(ch);
+  }
+
+  function tick(dt) {
+    state.lock = Math.max(0, state.lock - dt);
+    if (toastTimer > 0) {
+      toastTimer -= dt;
+      if (toastTimer <= 0) document.getElementById("toast").hidden = true;
+    }
+    var dx = 0;
+    var dy = 0;
+    if (!dialogue && state.lock <= 0) {
+      if (keys.up) dy -= 1;
+      if (keys.down) dy += 1;
+      if (keys.left) dx -= 1;
+      if (keys.right) dx += 1;
+      if (dx && dy) { dx *= 0.7; dy *= 0.7; }
+    }
+    state.moving = !!(dx || dy);
+    if (state.moving) {
+      if (Math.abs(dx) > Math.abs(dy)) state.face = dx > 0 ? "right" : "left";
+      else state.face = dy > 0 ? "down" : "up";
+      var map = maps[state.map];
+      var dist = SPEED * dt;
+      if (feetOk(map, state.x + dx * dist, state.y)) state.x += dx * dist;
+      if (feetOk(map, state.x, state.y + dy * dist)) state.y += dy * dist;
+      state.frame = Math.floor(performance.now() / 160) % 2;
+      stepDoor();
+    }
+    render();
+  }
+
+  function loop(t) {
+    if (!last) last = t;
+    var dt = Math.min(0.05, (t - last) / 1000);
+    last = t;
+    tick(dt);
+    requestAnimationFrame(loop);
+  }
+
+  document.addEventListener("keydown", function (e) {
+    var map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right" };
+    if (map[e.key]) {
+      if (dialogue && dialogue.choices && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        moveChoice(e.key === "ArrowUp" ? -1 : 1);
+      } else {
+        keys[map[e.key]] = true;
+      }
+      e.preventDefault();
+    }
+    if (e.key === "Enter" || e.key === " " || e.key === "z" || e.key === "Z") {
+      advance();
+      e.preventDefault();
+    }
+  });
+  document.addEventListener("keyup", function (e) {
+    var map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right" };
+    if (map[e.key]) keys[map[e.key]] = false;
+  });
+
+  document.getElementById("act").addEventListener("click", advance);
+  Array.prototype.forEach.call(document.querySelectorAll("#dpad button"), function (btn) {
+    var k = btn.getAttribute("data-k");
+    function down(e) {
+      e.preventDefault();
+      if (dialogue && dialogue.choices && (k === "up" || k === "down")) {
+        moveChoice(k === "up" ? -1 : 1);
+        return;
+      }
+      keys[k] = true;
+    }
+    function up() { keys[k] = false; }
+    btn.addEventListener("pointerdown", down);
+    btn.addEventListener("pointerup", up);
+    btn.addEventListener("pointerleave", up);
+    btn.addEventListener("pointercancel", up);
+  });
+
+  box.addEventListener("click", function (e) {
+    if (e.target.tagName === "BUTTON") return;
+    if (dialogue && !dialogue.choices) advance();
+  });
+
+  hud();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+<style>
+  .phone { width: 390px; height: 844px; overflow: hidden; background: #16130f; color: #e7dcc4; font-family: Silkscreen, monospace; box-sizing: border-box; padding: 18px 12px 12px; display: flex; flex-direction: column; }
+  .hud-top, .hud-bot { display: flex; justify-content: space-between; align-items: baseline; }
+  .hud-top { font-size: 15px; letter-spacing: .04em; }
+  .hud-bot { margin-top: 8px; font-size: 13px; color: #c4a15a; }
+  #tab { color: #c47a6a; }
+  .pips { display: flex; gap: 6px; }
+  .pips i { width: 8px; height: 8px; background: #c4a15a; display: block; }
+  .pips i.spent { background: transparent; box-shadow: inset 0 0 0 1.5px #c4a15a; }
+  .bezel { margin-top: 12px; position: relative; background: #0e0c0a; padding: 8px; border-radius: 10px; box-shadow: inset 0 0 0 2px #c4a15a; align-self: center; }
+  canvas { width: 360px; height: 540px; display: block; image-rendering: pixelated; background: #16130f; }
+  .fade { position: absolute; left: 8px; top: 8px; width: 360px; height: 540px; background: #0e0c0a; opacity: 0; pointer-events: none; transition: opacity .18s linear; }
+  .fade.on { opacity: 1; }
+  .box { position: absolute; left: 16px; right: 16px; bottom: 16px; background: #14110e; border: 3px solid #c4a15a; padding: 14px 12px 12px; min-height: 64px; }
+  .box, .who, .choices button, .toast { font-family: VT323, monospace; }
+  .who { position: absolute; top: -12px; left: 10px; background: #14110e; color: #e0bc6a; font-size: 22px; padding: 0 6px; letter-spacing: .04em; }
+  .box p { margin: 0; font-size: 22px; line-height: 1.15; color: #f3efe4; }
+  .choices { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .choices button { text-align: left; background: transparent; color: #f3efe4; border: 0; box-shadow: inset 0 0 0 1px #5c4a28; min-height: 36px; padding: 4px 8px; font-size: 22px; }
+  .choices button.on { box-shadow: inset 0 0 0 2px #e0bc6a; color: #e0bc6a; }
+  .next { position: absolute; right: 10px; bottom: 8px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #e0bc6a; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .toast { position: absolute; top: 16px; left: 0; right: 0; text-align: center; color: #e0bc6a; font-size: 13px; text-shadow: 0 1px 0 #0e0c0a; }
+  .controls { margin-top: 18px; display: flex; justify-content: space-between; align-items: center; padding: 0 18px; }
+  .dpad { width: 120px; height: 120px; display: grid; grid-template-columns: 40px 40px 40px; grid-template-rows: 40px 40px 40px; }
+  .dpad button { background: #2a241c; border: 0; box-shadow: inset 0 0 0 2px #5c4a28; }
+  .dpad button:nth-child(1) { grid-area: 1 / 2; }
+  .dpad button:nth-child(2) { grid-area: 2 / 1; }
+  .dpad button:nth-child(3) { grid-area: 3 / 2; }
+  .dpad button:nth-child(4) { grid-area: 2 / 3; }
+  .dpad button:active { background: #c4a15a; }
+  .a { width: 72px; height: 72px; border-radius: 50%; border: 0; background: #2a241c; color: #e0bc6a; font-family: Silkscreen, monospace; font-size: 20px; box-shadow: inset 0 0 0 2px #c4a15a; }
+  .a:active { background: #c4a15a; color: #16130f; }
+  .hint { margin: 14px 8px 0; font-family: Outfit, sans-serif; font-size: 12px; line-height: 1.4; color: #8a8172; text-align: center; }
+  @media (prefers-reduced-motion: reduce) { .next { animation: none; } }
+</style>
+</body>
+</html>

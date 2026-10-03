@@ -1,7 +1,7 @@
 # Prove Up — Concept v3
 
 **Working title:** 1866
-**Positioning:** Oregon Trail for financial literacy
+**Positioning:** Native Mobile App game for financial literacy
 **Audience:** US, ages 18–25, native mobile
 **Status:** concept v3, for group review — not a spec
 **Date:** 2026-09-12 (v3 same day as v2; see "v3 — what changed" near the end)

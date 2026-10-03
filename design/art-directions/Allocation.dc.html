@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,640&family=Outfit:wght@400;500;600&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>html, body { margin: 0; background: #E4DCCB; } x-dc { display: block; }</style>
+</helmet>
+<div class="phone">
+  <header class="top">
+    <div class="brand">
+      <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="#1A1714" stroke-width="1.2"/><path d="M9 .8v16.4M.8 9h16.4" stroke="#1A1714" stroke-width=".8"/><rect x="9" y="9" width="8.2" height="8.2" fill="#1E5C40"/></svg>
+      <span>Hollis claim</span>
+    </div>
+    <span class="count">5 / 20</span>
+  </header>
+
+  <p class="kicker">After the stockyard and the store</p>
+  <h1>Set the House</h1>
+
+  <section class="block">
+    <div class="row"><h2>Hay</h2><span>Half the stack · $20</span></div>
+    <div class="track" role="img" aria-label="Hay split halfway between keep and sell">
+      <div class="keep" style="width: 50%"></div>
+      <div class="sell" style="width: 50%"></div>
+      <i class="knob" style="left: 50%"></i>
+    </div>
+    <div class="ends"><span>Keep for winter</span><span>Sell to McCoy</span></div>
+  </section>
+
+  <section class="block">
+    <div class="row"><h2>Labor</h2><span>On the claim</span></div>
+    <div class="track" role="img" aria-label="This season’s labor is on the claim">
+      <div class="sell" style="width: 100%"></div>
+    </div>
+    <div class="ends"><span>This spring counts toward the patent</span><span>1 of 1</span></div>
+  </section>
+
+  <section class="block">
+    <div class="row"><h2>Cash</h2><span>$41.50 on hand</span></div>
+    <div class="track cash" role="img" aria-label="Cash split across seed, the tab, the cellar, and what you hold">
+      <div class="sell" style="width: 34%"></div>
+      <div class="tab" style="width: 19%"></div>
+      <div class="brass" style="width: 19%"></div>
+      <div class="hold" style="width: 28%"></div>
+    </div>
+    <ul class="legend">
+      <li><i class="sell"></i>Seed $14</li>
+      <li><i class="tab"></i>Tab $8</li>
+      <li><i class="brass"></i>Cellar $8</li>
+      <li><i class="hold"></i>Hold $11.50</li>
+    </ul>
+  </section>
+
+  <button type="button" class="swing" aria-pressed="false">
+    <i></i>
+    <span>Swing this season</span>
+  </button>
+
+  <div class="dock">
+    <p class="consequence">Half the hay stays for winter. The cellar stays above half. The tab is still open in June.</p>
+    <footer class="go">
+      <div>
+        <b>No grade yet</b>
+        <span>The letter is at Christmas</span>
+      </div>
+      <button type="button">Turn the season</button>
+    </footer>
+  </div>
+</div>
+</x-dc>
+<style>
+  .phone { width: 390px; height: 844px; overflow: hidden; background: #E4DCCB; color: #1A1714; font-family: Outfit, sans-serif; box-sizing: border-box; padding: 22px 22px 0; display: flex; flex-direction: column; }
+  .top, .row, .ends, .legend { display: flex; justify-content: space-between; align-items: baseline; }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+  .count { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500; color: #6E6558; }
+  .kicker { margin: 22px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #6E6558; }
+  h1 { margin: 4px 0 8px; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 40px; letter-spacing: -0.03em; line-height: 1; }
+  .block { margin-top: 22px; }
+  h2 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 22px; letter-spacing: -0.02em; }
+  .row span, .ends { font-size: 12px; color: #6E6558; }
+  .ends { margin-top: 6px; }
+  .track { position: relative; height: 18px; margin-top: 10px; display: flex; background: #F7F3EA; }
+  .track div { height: 100%; }
+  .keep { background: #E7D7A8; }
+  .sell { background: #1E5C40; }
+  .tab { background: #8E3B32; }
+  .brass { background: #A6843D; }
+  .hold { background: transparent; box-shadow: inset 0 0 0 1px #C9BFAB; }
+  .knob { position: absolute; top: -5px; width: 4px; height: 28px; background: #1A1714; transform: translateX(-2px); }
+  .legend { list-style: none; margin: 10px 0 0; padding: 0; gap: 8px; flex-wrap: wrap; justify-content: flex-start; }
+  .legend li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1A1714; }
+  .legend i { width: 8px; height: 8px; display: block; }
+  .swing { margin-top: 26px; display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; font-family: Outfit, sans-serif; font-size: 15px; font-weight: 500; color: #1A1714; min-height: 44px; }
+  .swing i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #1A1714; display: block; }
+  .dock { margin-top: auto; }
+  .consequence { margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 22px; line-height: 1.3; letter-spacing: -0.02em; }
+  .go { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #C9BFAB; padding: 14px 0 20px; }
+  .go b { display: block; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .go span { font-size: 12px; color: #6E6558; }
+  .go button { font-family: Outfit, sans-serif; background: #1A1714; color: #F7F3EA; border: 0; min-height: 48px; padding: 0 16px; font-size: 14px; font-weight: 500; }
+</style>
+</body>
+</html>

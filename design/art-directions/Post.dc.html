@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,560;0,9..144,640;1,9..144,560&family=Outfit:wght@400;500;600&display=swap">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>html, body { margin: 0; background: #E4DCCB; } x-dc { display: block; }</style>
+</helmet>
+<div class="phone">
+  <header class="top">
+    <div class="brand">
+      <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="16.5" fill="none" stroke="#1A1714" stroke-width="1.2"/><path d="M9 .8v16.4M.8 9h16.4" stroke="#1A1714" stroke-width=".8"/><rect x="9" y="9" width="8.2" height="8.2" fill="#1E5C40"/></svg>
+      <span>Hollis claim</span>
+    </div>
+    <span class="count">5 / 20</span>
+  </header>
+
+  <p class="kicker">Dickinson County · Spring 1867</p>
+  <h1>The post</h1>
+
+  <article class="slip">
+    <div class="meta"><span>Topeka Weekly</span><span>6 days late · $2 a year</span></div>
+    <p>McCoy has bought every board in Abilene and is raising cattle <button type="button" class="term">pens</button> by the grade. He will pay forty dollars for your hay.</p>
+  </article>
+
+  <article class="slip pin">
+    <div class="meta"><span>Church talk</span><span>Free · 3 weeks stale</span></div>
+    <p>Texas cattle at four dollars a head, if the herds come north.</p>
+  </article>
+
+  <div class="quiet">
+    <div><span class="meta-inline">Gold, in the weekly</span><b>138</b></div>
+    <span class="empty">Nothing you hold.</span>
+  </div>
+  <p class="locked">Kansas City daily · $8 a year · you don’t take it</p>
+
+  <aside class="note">
+    <div class="note-kicker">On “pens”</div>
+    <h2>Plain words</h2>
+    <p>A pen by the track where herds wait to be shipped.</p>
+    <h2>How the money moves</h2>
+    <p>Herds eat before they load. A man with pens pays for hay now. If the herds never come, you sold winter feed for someone else’s lumber.</p>
+    <h2>What you hold</h2>
+    <p>About 7 tons of hay. The claim sits near the grade.</p>
+  </aside>
+
+  <footer class="ledger">
+    <div><b>41.50</b><span>Cash</span></div>
+    <div class="debt"><b>28</b><span>Tab · 3% mo.</span></div>
+    <div><b>¾</b><span>Cellar</span></div>
+    <div><b>3</b><span>Visits</span></div>
+  </footer>
+</div>
+</x-dc>
+<style>
+  .phone { width: 390px; height: 844px; overflow: hidden; background: #E4DCCB; color: #1A1714; font-family: Outfit, sans-serif; box-sizing: border-box; padding: 22px 22px 0; display: flex; flex-direction: column; }
+  .top { display: flex; justify-content: space-between; align-items: center; }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; letter-spacing: .02em; }
+  .count { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 500; color: #6E6558; }
+  .kicker { margin: 22px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #6E6558; }
+  h1 { margin: 4px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 40px; letter-spacing: -0.03em; line-height: 1; }
+  .slip { margin-top: 16px; background: #F7F3EA; padding: 12px 14px 14px; border-radius: 2px; box-shadow: 0 1px 0 rgba(26,23,20,.08); }
+  .pin { margin-top: 10px; position: relative; }
+  .pin .meta { padding-right: 16px; }
+  .pin::before { content: ""; position: absolute; top: 14px; right: 12px; width: 7px; height: 7px; border-radius: 50%; background: #8E3B32; }
+  .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6E6558; }
+  .slip p { margin: 8px 0 0; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 17px; line-height: 1.35; letter-spacing: -0.01em; }
+  .term { font: inherit; color: inherit; background: none; border: 0; border-bottom: 1px solid #1E5C40; padding: 0; cursor: pointer; }
+  .quiet { margin-top: 14px; display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; border-top: 1px solid #C9BFAB; border-bottom: 1px solid #C9BFAB; }
+  .meta-inline { display: block; font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6E6558; }
+  .quiet b { font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 22px; }
+  .quiet div { display: flex; flex-direction: column; gap: 2px; }
+  .empty { font-size: 13px; color: #6E6558; }
+  .locked { margin: 8px 0 0; font-size: 12px; color: #6E6558; }
+  .note { margin-top: 14px; background: #F3F6F1; border-left: 3px solid #1E5C40; padding: 12px 14px 14px; }
+  .note-kicker { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #1E5C40; }
+  .note h2 { margin: 8px 0 0; font-family: Outfit, sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #6E6558; }
+  .note p { margin: 3px 0 0; font-size: 14px; line-height: 1.35; }
+  .ledger { margin-top: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border-top: 1px solid #C9BFAB; padding: 14px 0 22px; }
+  .ledger b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ledger span { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6E6558; }
+  .debt b, .debt span { color: #8E3B32; }
+</style>
+</body>
+</html>
