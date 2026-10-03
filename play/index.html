@@ -85,6 +85,20 @@
   .choice:disabled { opacity: .45; cursor: default; }
   .choice .cost { margin-left: auto; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
   .choice svg { flex-shrink: 0; }
+  /* Pruitt's shop */
+  .tabs { display: flex; gap: 6px; border-bottom: 1.5px solid var(--ink); }
+  .tab { flex: 1; min-height: 44px; border: 1.5px solid var(--ink); border-bottom: 0; border-radius: 10px 10px 0 0; background: var(--rule); font-weight: 600; font-size: 15px; margin-bottom: -1.5px; }
+  .tab[aria-pressed="true"] { background: var(--paper-hi); }
+  .wares { display: flex; flex-direction: column; gap: 8px; }
+  .ware { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--paper-hi); border: 1.5px solid var(--ink); border-radius: 12px; }
+  .ware .wn { display: flex; justify-content: space-between; gap: 10px; font-family: var(--display); font-size: 18px; line-height: 1.2; }
+  .ware .wp { font-family: var(--body); font-size: 14px; font-weight: 600; color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ware .wd { font-size: 14px; line-height: 1.4; color: var(--muted); }
+  .ware .wb { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ware .wb:empty { display: none; }
+  .buy { min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--ink); color: var(--paper); font-weight: 600; font-size: 15px; }
+  .buy + .buy { background: var(--paper); color: var(--ink); }
+  .buy:disabled { opacity: .4; cursor: default; }
   .walk { background: none; border: 0; font-style: italic; color: var(--muted); text-align: left; padding: 8px 14px; min-height: 44px; font-size: 15px; }
   .note { font-size: 13px; font-style: italic; color: var(--muted); }
   .ledger { border: 1.5px solid var(--ink); background: var(--paper-hi); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-variant-numeric: tabular-nums; }
