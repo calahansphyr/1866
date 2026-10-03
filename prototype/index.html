@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#DCEBF5">
+<title>1866 · Prove Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&display=swap">
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js" } }
+</script>
+<style>
+  :root {
+    --sky: #DCEBF5; --ink: #2B3A4E; --muted: #5A6B80; --blue: #4A6FA5; --coral: #E07A5F;
+    --paper: #FFFFFF; --line: #E3ECF3; --green: #5E8F4E; --gold: #C9963B; --red: #B5483A;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--ink);
+    font: 15px/1.5 'Nunito', 'Helvetica Neue', Arial, sans-serif; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+  #labels { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .blabel { position: absolute; left: 0; top: 0; font: 700 11px 'Nunito', sans-serif; background: rgba(255,255,255,.85);
+    color: var(--ink); padding: 3px 8px; border-radius: 999px; white-space: nowrap; pointer-events: auto; cursor: pointer;
+    box-shadow: 0 2px 6px rgba(43,58,78,.12); transition: background .2s, color .2s; }
+  .blabel.active { background: var(--blue); color: #fff; }
+  #labels.hidden { display: none; }
+
+  #hud { position: fixed; top: 0; left: 0; right: 0; padding: max(12px, env(safe-area-inset-top)) 16px 0; pointer-events: none; }
+  #hud .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #house { font: 600 18px 'Fredoka', 'Nunito', sans-serif; }
+  #season { font-size: 12px; font-weight: 700; color: var(--blue); background: #fff; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+  #ledger { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; max-width: 460px; }
+  #ledger div { background: rgba(255,255,255,.9); border-radius: 12px; padding: 5px 8px; font-size: 11px; color: var(--muted); }
+  #ledger b { display: block; font-size: 15px; color: var(--ink); }
+  #ledger .warn b { color: var(--red); }
+
+  #sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 58vh; display: flex; flex-direction: column;
+    background: var(--paper); border-radius: 22px 22px 0 0; box-shadow: 0 -8px 24px rgba(43,58,78,.1); transition: transform .25s ease; }
+  #sheet.collapsed { transform: translateY(calc(100% - 34px)); }
+  #grab { border: 0; background: none; padding: 12px 0 6px; cursor: pointer; display: flex; justify-content: center; }
+  #grab::before { content: ''; width: 40px; height: 4px; background: var(--line); border-radius: 2px; }
+  #sheet-body { overflow-y: auto; padding: 0 20px max(20px, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+  @media (min-width: 860px) {
+    #sheet, #sheet.wide { left: auto; right: 16px; bottom: 16px; top: 16px; width: 420px; max-height: none; border-radius: 22px; }
+    #sheet.wide { width: 560px; }
+    #sheet.collapsed { transform: translateX(calc(100% - 40px)); }
+  }
+
+  h1, h2, h3 { font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 600; margin: 4px 0 8px; line-height: 1.2; }
+  h1 { font-size: 30px; } h2 { font-size: 22px; } h3 { font-size: 17px; margin-top: 18px; }
+  h4 { margin: 12px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--blue); }
+  p { margin: 6px 0 10px; }
+  .kicker { font-size: 12px; font-weight: 700; color: var(--coral); text-transform: uppercase; letter-spacing: .06em; }
+  .lede { font-size: 16px; }
+  .muted { color: var(--muted); } .small { font-size: 13px; }
+  .hint { background: #F3F8FC; border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: block; width: 100%; min-height: 50px; margin: 14px 0 6px; border: 0; border-radius: 14px; background: var(--blue);
+    color: #fff; font: 700 16px 'Nunito', sans-serif; cursor: pointer; }
+  .row .btn { flex: 1; width: auto; }
+  .btn.ghost { background: #EEF4FA; color: var(--blue); }
+  .btn:active, .choice:active { transform: scale(.98); }
+  .term { border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer;
+    text-decoration: underline; text-decoration-color: var(--coral); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+  .term-demo { text-decoration: underline; text-decoration-color: var(--coral); text-decoration-thickness: 2px; }
+  .choices { display: grid; gap: 8px; margin: 10px 0; }
+  .choice { text-align: left; border: 1.5px solid var(--line); background: #fff; border-radius: 14px; padding: 12px 14px;
+    font: 600 15px 'Nunito', sans-serif; color: var(--ink); cursor: pointer; }
+  .choice span { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+  .choice:disabled { opacity: .5; cursor: default; }
+  .say { font-size: 16px; }
+
+  .news { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; margin: 12px 0; }
+  .news .src { font-size: 12px; color: var(--muted); }
+  .news .head { font-family: Georgia, 'Times New Roman', serif; font-size: 16px; margin: 4px 0; }
+  .news .local { font-style: italic; color: var(--muted); margin: 4px 0; }
+  .news .ahead, .news .gold { font-size: 14px; margin: 4px 0; }
+  .rhyme { display: inline-block; font-size: 12px; font-weight: 700; color: #fff; background: var(--coral); border-radius: 999px; padding: 2px 9px; }
+
+  .buildings { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+  .bchip { min-height: 44px; border: 1.5px solid var(--line); border-radius: 12px; background: #fff; font: 700 14px 'Nunito', sans-serif; color: var(--ink); cursor: pointer; }
+  .bchip.done { background: #EEF4FA; color: var(--muted); }
+  .bchip:disabled { opacity: .5; }
+
+  .field { margin: 14px 0; }
+  .field label { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  input[type=range] { width: 100%; accent-color: var(--blue); height: 28px; }
+  input#name { width: 100%; font: 600 18px 'Nunito', sans-serif; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 12px; color: var(--ink); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 10px; font: 700 14px 'Nunito', sans-serif; color: var(--ink); cursor: pointer; text-align: left; }
+  .seg button span { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+  .seg button.on { border-color: var(--blue); background: #EEF4FA; }
+
+  .ledger { list-style: none; padding: 0; margin: 8px 0; }
+  .ledger li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .ledger li b { white-space: nowrap; }
+  .ledger li.neg b, .ledger li.bad b { color: var(--red); }
+  .ledger li.pos b { color: var(--green); }
+  .ledger li.bad span { color: var(--red); }
+  .ledger li.good span { color: var(--green); }
+  .ledger li.note span { color: var(--muted); }
+  .ruin { background: #FBEDEA; color: var(--red); border-radius: 12px; padding: 10px 12px; font-weight: 700; }
+  .letterline { font-family: Georgia, serif; font-style: italic; color: var(--muted); }
+  .letter { background: #FBF7EF; border-radius: 14px; padding: 6px 16px; font-family: Georgia, serif; }
+  .letter .sign { text-align: right; }
+
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; margin-right: 6px; }
+  .pill.sound { background: #E3F0DC; color: #3E6B2E; }
+  .pill.unlucky { background: #E3ECF7; color: #35598C; }
+  .pill.lucky { background: #FBF0D9; color: #8A6417; }
+  .pill.exposed { background: #FBE3DE; color: #9A3A2C; }
+  .verdict { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .verdict p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 2; }
+  .tally { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tally .pill { font-size: 14px; padding: 5px 12px; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th, .tbl td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .bridge li { margin: 4px 0; }
+
+  #note { position: fixed; inset: 0; background: rgba(43,58,78,.25); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  #note.open { display: flex; }
+  #note .card { background: #FBF7EF; width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; border-radius: 22px 22px 0 0;
+    padding: 18px 20px max(22px, env(safe-area-inset-bottom)); box-shadow: 0 -8px 24px rgba(43,58,78,.15); position: relative; }
+  @media (min-width: 860px) { #note { align-items: center; } #note .card { border-radius: 22px; } }
+  #note-close { position: absolute; right: 12px; top: 10px; border: 0; background: #fff; border-radius: 999px; width: 34px; height: 34px; font-size: 18px; cursor: pointer; color: var(--ink); }
+  .chain { padding-left: 20px; } .chain li { margin: 3px 0; }
+  #note ul { padding-left: 20px; }
+
+  #toast { position: fixed; left: 50%; top: 110px; transform: translate(-50%, -10px); background: var(--ink); color: #fff;
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; opacity: 0; transition: .2s; pointer-events: none; z-index: 20; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  #nogl { display: none; position: fixed; inset: 0; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+</style>
+</head>
+<body>
+  <canvas id="scene" aria-label="Your claim and the town, as a small 3D diorama"></canvas>
+  <div id="labels"></div>
+  <header id="hud">
+    <div class="top"><div id="house">1866</div><div id="season">Prove Up</div></div>
+    <div id="ledger">
+      <div>Cash<b id="cash">$0</b></div>
+      <div>Tab<b id="tab">$0</b></div>
+      <div>Cellar<b id="cellar">$0</b></div>
+      <div>Net worth<b id="nw">$0</b></div>
+    </div>
+  </header>
+  <section id="sheet"><button id="grab" aria-label="Show or hide the panel"></button><div id="sheet-body"></div></section>
+  <div id="note" role="dialog" aria-modal="true"><div class="card"><button id="note-close" aria-label="Close">&times;</button><div id="note-body"></div></div></div>
+  <div id="toast" role="status"></div>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
