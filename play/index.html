@@ -142,7 +142,7 @@
   .hero { display: flex; justify-content: center; align-items: flex-end; height: 200px; }
   .hero svg { width: 120px; height: 200px; }
 
-  #toast { position: fixed; left: 50%; top: 110px; transform: translateX(-50%); z-index: 12; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); text-align: center; }
+  #toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: translateX(-50%); z-index: 12; background: var(--ink); color: var(--paper); padding: 8px 14px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); text-align: center; }
   #labels { position: fixed; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
   .blabel { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; color: var(--ink); font: 600 13px var(--body); background: var(--paper); border: 1.5px solid var(--ink); padding: 1px 8px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -100%); }
   .blabel.near { background: var(--ink); color: var(--paper); }

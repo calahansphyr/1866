@@ -9,8 +9,8 @@ import { ART, LOOK } from './art.js';
 
 const K = {
   startCash: 30, startAcres: 8, maxAcres: 40, sod: 5,
-  seed: 1.5, yield: 14, plowBonus: 1.25, hiredPenalty: 0.85, wage: 30,
-  living: 30, winter: 35, hardWinter: 55, hardP: 0.25, droughtP: 0.2,
+  seed: 1.5, yield: 11, plowBonus: 1.25, hiredPenalty: 0.85, wage: 30,
+  living: 40, winter: 45, hardWinter: 70, hardP: 0.25, droughtP: 0.2,
   tabHalf: Math.pow(1.03, 6) - 1, // 3% a month, six months a season
   jarCost: 4, jarValue: 5, maxJars: 14, wire: 1,
   savingsRate: 0.05, loanAmt: 50, loanRate: 0.10, lateRate: 0.15,
@@ -310,7 +310,7 @@ handlers.reaper = () => { spend(K.reaperCash); S.reaper = { left: 0 }; toast('Bo
 handlers.sell = () => {
   const p = pruittPays();
   const v = S.grain * p;
-  decide({ kind: 'sell', wired: S.wired, price: p, chicago: chicago(), held: S.half === 0 });
+  decide({ kind: 'sell', wired: S.wired || S.cash < K.wire, price: p, chicago: chicago(), held: S.half === 0 });
   S.cash += v; S.soldAt = p; S.grain = 0;
   unlock('price');
   toast(`Sold for ${money(v)}.`);
@@ -496,7 +496,8 @@ handlers.summer = (how) => {
   S.hired = how === 'hire';
   if (S.hired) { S.cash += K.wage; L.push(['Wages from the rail crews', K.wage]); decide({ kind: 'hire' }); }
   else { S.acres = Math.min(K.maxAcres, S.acres + K.sod); L.push([`Broke ${K.sod} more acres of sod (${S.acres} in all)`, 0]); decide({ kind: 'sod' }); unlock('sod'); }
-  spend(K.living, L, 'Living costs, spring and summer');
+  const living = K.living + (S.year - FIRST) * 5;
+  spend(living, L, `Living costs, spring and summer (${S.year - FIRST ? 'a bigger family now' : 'a family of four'})`);
   if (S.reaper && S.reaper.left) { spend(K.reaperPay, L, 'Reaper installment'); S.reaper.left--; }
   accrueTab(L);
   // The harvest.
@@ -550,6 +551,7 @@ handlers.winter = () => {
       S.decisions.filter((d) => d.kind === 'loan' && d.repaid == null).forEach((d) => { d.repaid = false; });
     }
   }
+  if (S.year === 1873 && S.stock) decide({ kind: 'stock', cost: K.stockCost, soldFor: stockValue(), held: true });
   if (S.mortgage) { const i = S.mortgage.amt * S.mortgage.rate; spend(i, L, 'Mortgage interest for the year'); }
   if (S.reaper && S.reaper.left) { spend(K.reaperPay, L, 'Reaper installment'); S.reaper.left--; }
   // Winter itself.
@@ -621,7 +623,7 @@ function gradeYear(year) {
     if (d.kind === 'instal') lines.push({ stamp: 'Exposed', text: "I took the salesman's reaper on installments.", why: `${money(K.reaperDown + K.reaperPay * K.reaperPays)} in all. Pruitt sells one for ${money(K.reaperCash)} cash.` });
     if (d.kind === 'stock') {
       const sold = d.soldFor != null ? d.soldFor : stockValue();
-      lines.push({ stamp: stampOf(false, sold > d.cost), text: "I bought a railroad certificate from the salesman.", why: `On his word alone. It is worth ${money(sold)} now.` });
+      lines.push({ stamp: stampOf(false, sold > d.cost), text: d.held ? 'I still held the railroad certificate when Jay Cooke failed.' : 'I bought a railroad certificate from the salesman.', why: `Bought on his word alone. It is worth ${money(sold)} now.` });
     }
     if (d.kind === 'bank') {
       if (d.lost) lines.push({ stamp: 'Unlucky', text: `We kept ${money(d.amt)} in Mr. Cole's bank, and it closed.`, why: 'Saving was right. No one insured the deposits in 1873; the wire carried the warning.' });
